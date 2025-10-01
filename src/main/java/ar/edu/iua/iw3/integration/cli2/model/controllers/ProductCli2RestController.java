@@ -7,10 +7,13 @@ import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +27,7 @@ import ar.edu.iua.iw3.integration.cli2.model.ProductCli2;
 import ar.edu.iua.iw3.integration.cli2.model.ProductCli2SlimV1JsonSerializer;
 import ar.edu.iua.iw3.integration.cli2.model.business.IProductCli2Business;
 import ar.edu.iua.iw3.model.business.BusinessException;
+import ar.edu.iua.iw3.model.business.FoundException;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 import ar.edu.iua.iw3.util.JsonUtiles;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +43,17 @@ public class ProductCli2RestController extends BaseRestController {
 
 	@Autowired
 	private IStandartResponseBusiness response;
+
+	@GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> list() {
+		try {
+			return new ResponseEntity<>(productBusiness.list(), HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	// http://localhost:8080/api/v1/integration/cli2/products/list-expired?since=2025-09-15 18:00:00
 
 	@GetMapping(value = "/list-expired", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -66,6 +81,33 @@ public class ProductCli2RestController extends BaseRestController {
 		} catch (BusinessException  | JsonProcessingException e ) {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@GetMapping(value = "/list-by-price", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> listByPrice(
+			@RequestParam(name = "start-price", required = false) Double startPrice,
+			@RequestParam(name = "end-price", required = false) Double endPrice) {
+		try {
+			return new ResponseEntity<>(productBusiness.listByPrice(startPrice, endPrice), HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@PostMapping(value = "/b2b", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> addExternal(@RequestBody ProductCli2 product) {
+		try {
+			ProductCli2 responseProduct = productBusiness.add(product);
+			HttpHeaders responseHeaders = new HttpHeaders();
+			responseHeaders.set("location", Constants.URL_INTEGRATION_CLI2 + "/products/" + responseProduct.getId());
+			return new ResponseEntity<>(responseProduct, HttpStatus.CREATED);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (FoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.CONFLICT, e, e.getMessage()), HttpStatus.CONFLICT);
 		}
 	}
 
