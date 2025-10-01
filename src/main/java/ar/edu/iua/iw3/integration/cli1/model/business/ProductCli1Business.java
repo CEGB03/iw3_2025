@@ -68,6 +68,10 @@ public class ProductCli1Business implements IProductCli1Business {
 			throw FoundException.builder().message("Se encontró el Producto código=" + product.getCodCli1()).build();
 		}
 
+		// Validación del nombre del producto
+		if (product.getProduct() == null || product.getProduct().trim().isEmpty()) {
+			throw BusinessException.builder().message("El nombre del producto es obligatorio").build();
+		}
 
 		try {
 			return productDAO.save(product);
@@ -90,6 +94,11 @@ public class ProductCli1Business implements IProductCli1Business {
 		} catch (JsonProcessingException e) {
 			log.error(e.getMessage(), e);
 			throw BusinessException.builder().ex(e).build();
+		}
+
+		// Validación del nombre del producto en JSON externo
+		if (product.getProduct() == null || product.getProduct().trim().isEmpty()) {
+			throw BusinessException.builder().message("El JSON debe incluir el campo 'product' con el nombre del producto").build();
 		}
 
 		return add(product);
