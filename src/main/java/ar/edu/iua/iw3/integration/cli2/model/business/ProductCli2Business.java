@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.integration.cli2.model.ProductCli2;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
+@Profile("cli2")
 public class ProductCli2Business implements IProductCli2Business {
 
 	@Autowired
