@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.integration.cli2.model.ProductCli2;
 import ar.edu.iua.iw3.integration.cli2.model.ProductCli2SlimView;
-import ar.edu.iua.iw3.integration.cli2.model.persistence.ProductCli2Respository;
+import ar.edu.iua.iw3.integration.cli2.model.persistence.ProductCli2Repository;
 import ar.edu.iua.iw3.model.business.BusinessException;
 import ar.edu.iua.iw3.model.business.FoundException;
 import ar.edu.iua.iw3.model.business.IProductBusiness;
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ProductCli2Business implements IProductCli2Business {
 
 	@Autowired
-	private ProductCli2Respository productDAO;
+	private ProductCli2Repository productDAO;
 
 	@Autowired
 	private IProductBusiness productBaseBusiness;
