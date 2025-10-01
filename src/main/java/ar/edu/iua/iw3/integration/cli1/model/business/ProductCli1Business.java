@@ -97,8 +97,12 @@ public class ProductCli1Business implements IProductCli1Business {
 		}
 
 		// Validación del nombre del producto en JSON externo
-		if (product.getProduct() == null || product.getProduct().trim().isEmpty()) {
-			throw BusinessException.builder().message("El nombre del producto es obligatorio").build();
+		//log.info("DEBUG: product.getProduct() = '{}'", product.getProduct());
+		if (product.getProduct() == null) {
+			throw BusinessException.builder().message("El campo 'product' es null, este campo es obligatorio").build();
+		}
+		if (product.getProduct().trim().isEmpty()) {
+			throw BusinessException.builder().message("El campo 'product' está vacío, este campo es obligatorio").build();
 		}
 
 		return add(product);
