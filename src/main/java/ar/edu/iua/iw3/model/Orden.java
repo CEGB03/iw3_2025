@@ -2,10 +2,15 @@ package ar.edu.iua.iw3.model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.ManyToAny;
+
 import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,25 +23,26 @@ import lombok.Setter;
 @Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
 @Getter
 @Setter
+@Entity
 public class Orden {
     
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private int id;
 
-    @Column
+    @Column (name = "estado")
     private int estado;
 
-    @Column(name = "camion")
+    @ManyToMany
     private Camion camion;
 
-    @Column(name = "chofer")
+    @ManyToMany
     private Chofer chofer;
 
-    @Column(name = "cliente")
+    @ManyToAny
     private Cliente cliente;
 
-    @Column(name = "producto")
+    @ManyToOne
     private Producto producto;
 
     @Column(name = "fyh_recepcion_inicial")
@@ -53,6 +59,9 @@ public class Orden {
 
     @Column(name = "fyh_pesaje_final")
     private LocalDateTime fyhPesajeFinal;
+
+    @Column(name = "preset")
+    private double preset;
 
 
 }

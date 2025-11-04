@@ -10,7 +10,7 @@ public interface OrdenRepository extends JpaRepository  <Orden, Integer> {
 
     Optional<Orden> findById(int id);
 
-    Optional<Orden> findByOrden(Orden orden);
+    //Optional<Orden> findByOrden(Orden orden);
 
-    Optional<Orden> findByOrdenAndIdNot(Orden orden, int id);
+    //Optional<Orden> findByOrdenAndIdNot(Orden orden, int id);
 }

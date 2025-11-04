@@ -11,11 +11,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-@Entity
 @Table(name = "camiones")
 @Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
 public class Camion {
