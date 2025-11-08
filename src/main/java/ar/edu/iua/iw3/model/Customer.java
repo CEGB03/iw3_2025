@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "clientes")
+@Table(name = "Customers")
 @Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,13 +22,13 @@ public class Customer {
 
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private long id;
+    private String id;
 
     @Column
-    private String socialNumber;
+    private long socialNumber;
 
     @Column
-    private int phoneNumber;
+    private long phoneNumber;
 
     @Column
     private String mail;

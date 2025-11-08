@@ -22,7 +22,7 @@ public class Driver {
     
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private long id;
+    private String id;
 
     @Column(nullable = false)
     private String name;
@@ -31,5 +31,5 @@ public class Driver {
     private String lastName;
 
     @Column(unique = true, nullable = false)
-    private String dni;
+    private long dni;
 }

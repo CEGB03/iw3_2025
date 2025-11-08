@@ -22,11 +22,11 @@ public class Product {
     
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private long id;
+    private String id;
 
     //Hay que poner para que nunca esté vacío con @NotEmpty, creo que tmb es de jakarta.validation
     @Column (unique = true, nullable = false)
-    private String name;
+    private String productName;
 
     @Column
     private String description;
