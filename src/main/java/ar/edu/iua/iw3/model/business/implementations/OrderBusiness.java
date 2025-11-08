@@ -1,4 +1,4 @@
-package ar.edu.iua.iw3.model.business;
+package ar.edu.iua.iw3.model.business.implementations;
 
 import java.util.List;
 import java.util.Optional;
@@ -6,21 +6,25 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ar.edu.iua.iw3.model.Orden;
-import ar.edu.iua.iw3.model.persistence.OrdenRepository;
+import ar.edu.iua.iw3.model.Order;
+import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
+import ar.edu.iua.iw3.model.business.exceptions.FoundException;
+import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
+import ar.edu.iua.iw3.model.business.interfaces.IOrderBusiness;
+import ar.edu.iua.iw3.model.persistence.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-public class OrdenBusiness implements IOrdenBusiness {
+public class OrderBusiness implements IOrderBusiness {
     
     @Autowired
-    private OrdenRepository ordenDAO;
+    private OrderRepository orderDAO;
 
     @Override
-    public List<Orden> list() throws BusinessException{
+    public List<Order> list() throws BusinessException{
         try {
-            return ordenDAO.findAll();
+            return orderDAO.findAll();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).message(e.getMessage()).build();
@@ -28,10 +32,10 @@ public class OrdenBusiness implements IOrdenBusiness {
     }
 
     @Override
-    public Orden load(int id) throws NotFoundException, BusinessException {
-        Optional<Orden> r;
+    public Order load(int id) throws NotFoundException, BusinessException {
+        Optional<Order> r;
         try {
-            r = ordenDAO.findById(id);
+            r = orderDAO.findById(id);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).build();
@@ -43,7 +47,7 @@ public class OrdenBusiness implements IOrdenBusiness {
     }
 
     @Override
-    public Orden add(Orden orden) throws FoundException, BusinessException {
+    public Order add(Order orden) throws FoundException, BusinessException {
         try {
             load(orden.getId());
             throw FoundException.builder().message("La orden con id " + orden.getId() + " ya existe").build();
@@ -52,7 +56,7 @@ public class OrdenBusiness implements IOrdenBusiness {
         }
     
         try {
-            return ordenDAO.save(orden);
+            return orderDAO.save(orden);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).message(e.getMessage()).build();
@@ -63,7 +67,7 @@ public class OrdenBusiness implements IOrdenBusiness {
     public void delete(int id) throws NotFoundException, BusinessException {
         load(id);
         try {
-            ordenDAO.deleteById(id);
+            orderDAO.deleteById(id);
 
     } catch (Exception e) {
             log.error(e.getMessage(), e);

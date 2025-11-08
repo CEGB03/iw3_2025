@@ -1,4 +1,4 @@
-package ar.edu.iua.iw3.model.business;
+package ar.edu.iua.iw3.model.business.exceptions;
 
 import lombok.Builder;
 import lombok.NoArgsConstructor;

@@ -3,6 +3,7 @@ package ar.edu.iua.iw3.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.Table;
@@ -12,23 +13,23 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@Table(name = "Trucks")
+@Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-@Table(name = "camiones")
-@Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
-public class Camion {
+public class Truck {
 
     @Id
-    private String codigoExterno;
+    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    private long id;
 
     @Column (unique = true, nullable = false)
-    private String patente;
+    private String licensePlate; ;
 
-    @Column
-    private String descripcion;
+    private String description;
     
     @Column
-    private String cisternado;
+    private String Truncker;
 }
