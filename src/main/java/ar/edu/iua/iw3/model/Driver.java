@@ -21,7 +21,7 @@ import lombok.Setter;
 public class Driver {
     
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    //@GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private String id;
 
     @Column(nullable = false)

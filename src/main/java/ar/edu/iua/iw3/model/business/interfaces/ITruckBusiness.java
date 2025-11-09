@@ -11,15 +11,15 @@ public interface ITruckBusiness {
     
     public List<Truck> list() throws BusinessException;
 
-    public Truck load(long id) throws NotFoundException, BusinessException;
+    public Truck load(String id) throws NotFoundException, BusinessException;
 
-    public Truck load(String licensePlate) throws NotFoundException, BusinessException;
+    public Truck loadLicensePlate(String licensePlate) throws NotFoundException, BusinessException;
 
     public Truck add(Truck truck) throws FoundException, BusinessException;
 
     public Truck update(Truck truck) throws NotFoundException, BusinessException;
 
-    public void delete(long id) throws NotFoundException, BusinessException;
+    public void delete(String id) throws NotFoundException, BusinessException;
 
     public void delete(Truck truck) throws NotFoundException, BusinessException;
 

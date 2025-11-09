@@ -21,7 +21,7 @@ import lombok.Setter;
 public class Product {
     
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    //@GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private String id;
 
     //Hay que poner para que nunca esté vacío con @NotEmpty, creo que tmb es de jakarta.validation

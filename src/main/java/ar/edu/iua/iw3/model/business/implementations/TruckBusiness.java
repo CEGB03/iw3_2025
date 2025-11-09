@@ -32,7 +32,7 @@ public class TruckBusiness implements ITruckBusiness {
     }
 
     @Override
-    public Truck load(long id) throws NotFoundException, BusinessException {
+    public Truck load(String id) throws NotFoundException, BusinessException {
         Optional<Truck> r;
         try {
             r = truckDAO.findById(id);
@@ -49,7 +49,7 @@ public class TruckBusiness implements ITruckBusiness {
     }
 
     @Override
-    public Truck load(String licensePlate) throws NotFoundException, BusinessException {
+    public Truck loadLicensePlate(String licensePlate) throws NotFoundException, BusinessException {
         Optional<Truck> r;
         try {
             r = truckDAO.findByLicensePlate(licensePlate);
@@ -94,7 +94,7 @@ public class TruckBusiness implements ITruckBusiness {
     }
 
     @Override
-    public void delete(long id) throws NotFoundException, BusinessException {
+    public void delete(String id) throws NotFoundException, BusinessException {
         load(id);
         try {
             truckDAO.deleteById(id);
@@ -106,7 +106,7 @@ public class TruckBusiness implements ITruckBusiness {
 
     @Override
     public void delete(Truck truck) throws NotFoundException, BusinessException {
-        if (truck == null || truck.getId() == 0) {
+        if (truck == null) {
             throw BusinessException.builder().message("El camión o su ID son nulos").build();
         }
         delete(truck.getId());

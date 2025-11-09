@@ -22,8 +22,8 @@ import lombok.Setter;
 public class Truck {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private long id;
+    //@GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    private String id;
 
     @Column (unique = true, nullable = false)
     private String licensePlate; ;
@@ -31,5 +31,5 @@ public class Truck {
     private String description;
     
     @Column
-    private String Truncker;
+    private String truncker;
 }
