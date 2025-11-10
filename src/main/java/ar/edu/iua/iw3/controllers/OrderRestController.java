@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.iua.iw3.model.Order;
+import ar.edu.iua.iw3.model.OrderDetail;
+import ar.edu.iua.iw3.model.Reconciliation;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 
 @RestController
@@ -76,6 +79,54 @@ public class OrderRestController {
 		} catch (BusinessException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@PostMapping(value = "/{id}/initial-weighing")
+	public ResponseEntity<?> registerInitialWeighing(@PathVariable int id, @RequestBody Double tare) {
+		try {
+			Order o = orderBusiness.registerInitialWeighing(id, tare);
+			return new ResponseEntity<>(o, HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@PostMapping(value = "/{id}/detail")
+	public ResponseEntity<?> addDetail(@PathVariable int id, @RequestBody OrderDetail detail, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
+		try {
+			Order o = orderBusiness.addDetail(id, detail, password);
+			return new ResponseEntity<>(o, HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@PostMapping(value = "/{id}/close")
+	public ResponseEntity<?> closeOrder(@PathVariable int id) {
+		try {
+			Order o = orderBusiness.closeOrder(id);
+			return new ResponseEntity<>(o, HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@PostMapping(value = "/{id}/final-weighing")
+	public ResponseEntity<?> finalizeWeighing(@PathVariable int id, @RequestBody Double finalWeighing) {
+		try {
+			Reconciliation r = orderBusiness.finalizeWeighing(id, finalWeighing);
+			return new ResponseEntity<>(r, HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
 		} catch (NotFoundException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
 		}

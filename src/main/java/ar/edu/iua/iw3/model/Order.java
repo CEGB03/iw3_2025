@@ -10,6 +10,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.OneToMany;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -61,6 +64,40 @@ public class Order {
     //@Min (tiene que ser mayor a cero si o si) algo de jakarta.validation pero no aparece
     @Column(name = "preset")
     private double preset;
+
+    // External code coming from external systems (flexible text)
+    @Column(name = "external_code")
+    private String externalCode;
+
+    // Activation password (5 digits) generated when initial weighing is registered
+    @Column(name = "activation_password")
+    private Integer activationPassword;
+
+    // Initial (tara) and final weighing
+    @Column(name = "initial_weighing")
+    private Double initialWeighing;
+
+    @Column(name = "final_weighing")
+    private Double finalWeighing;
+
+    // Last values received during loading (cabecera)
+    @Column(name = "last_mass_accumulated")
+    private Double lastMassAccumulated;
+
+    @Column(name = "last_density")
+    private Double lastDensity;
+
+    @Column(name = "last_temperature")
+    private Double lastTemperature;
+
+    @Column(name = "last_flow")
+    private Double lastFlow;
+
+    @Column(name = "last_timestamp")
+    private LocalDateTime lastTimestamp;
+
+    @OneToMany(mappedBy = "order", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private List<OrderDetail> details = new ArrayList<>();
 
 
 }
