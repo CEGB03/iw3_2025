@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ar.edu.iua.iw3.model.Order;
 import ar.edu.iua.iw3.model.OrderDetail;
 import ar.edu.iua.iw3.model.Reconciliation;
+import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
@@ -105,6 +106,23 @@ public class OrderRestController {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
 		} catch (NotFoundException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@PostMapping(value = "/{id}/start")
+	public ResponseEntity<?> startOrder(@PathVariable int id, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
+		try {
+			Double preset = orderBusiness.getPreset(id, password);
+			java.util.Map<String, Object> body = new java.util.HashMap<>();
+			body.put("orderId", id);
+			body.put("preset", preset);
+			return new ResponseEntity<>(body, HttpStatus.OK);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		} catch (UnauthorizedException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.UNAUTHORIZED, e, e.getMessage()), HttpStatus.UNAUTHORIZED);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 

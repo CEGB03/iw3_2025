@@ -8,6 +8,7 @@ import ar.edu.iua.iw3.model.Reconciliation;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
+import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 
 public interface IOrderBusiness {
 
@@ -30,4 +31,7 @@ public interface IOrderBusiness {
 
 	// Punto 5: registrar pesaje final y obtener conciliación
 	public Reconciliation finalizeWeighing(int id, Double finalWeighing) throws NotFoundException, BusinessException;
+
+	// Punto 3b: solicitar preset de la orden (requiere contraseña de activación si aplica)
+	public Double getPreset(int id, Integer password) throws NotFoundException, BusinessException, UnauthorizedException;
 }

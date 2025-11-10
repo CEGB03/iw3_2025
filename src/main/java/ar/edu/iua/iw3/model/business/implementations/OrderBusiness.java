@@ -15,9 +15,11 @@ import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IOrderBusiness;
 import ar.edu.iua.iw3.model.persistence.OrderRepository;
 import ar.edu.iua.iw3.model.persistence.OrderDetailRepository;
+import ar.edu.iua.iw3.model.persistence.OrderStateLogRepository;
+import ar.edu.iua.iw3.model.OrderStateLog;
+import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import java.time.LocalDateTime;
 import java.util.Random;
-import java.util.stream.DoubleStream;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -29,6 +31,35 @@ public class OrderBusiness implements IOrderBusiness {
 
     @Autowired
     private OrderDetailRepository orderDetailDAO;
+
+    @Autowired
+    private OrderStateLogRepository stateLogDAO;
+
+    private void saveStateLog(Order order, int fromState, int toState, String actor, String notes) {
+        try {
+            if (stateLogDAO == null) {
+                return;
+            }
+            OrderStateLog log = new OrderStateLog(order, fromState, toState, LocalDateTime.now(), actor, notes);
+            stateLogDAO.save(log);
+        } catch (Exception e) {
+            log.warn("Failed to save OrderStateLog: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Double getPreset(int id, Integer password) throws NotFoundException, BusinessException, UnauthorizedException {
+        Order o = load(id);
+        if (o.getState() != 2) {
+            throw BusinessException.builder().message("Orden no en estado 2").build();
+        }
+        if (o.getActivationPassword() != null) {
+            if (password == null || !o.getActivationPassword().equals(password)) {
+                throw UnauthorizedException.builder().message("Password incorrecta o faltante").build();
+            }
+        }
+        return o.getPreset();
+    }
 
     @Override
     public List<Order> list() throws BusinessException{
@@ -72,7 +103,14 @@ public class OrderBusiness implements IOrderBusiness {
             if (orden.getTimeInitialReception() == null) {
                 orden.setTimeInitialReception(LocalDateTime.now());
             }
-            return orderDAO.save(orden);
+            Order saved = orderDAO.save(orden);
+            // audit: new order created (0 -> 1)
+            try {
+                saveStateLog(saved, 0, saved.getState(), "system", "Order created");
+            } catch (Exception ex) {
+                log.warn("Could not save state log: " + ex.getMessage());
+            }
+            return saved;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).message(e.getMessage()).build();
@@ -103,8 +141,15 @@ public class OrderBusiness implements IOrderBusiness {
             // generate 5-digit password
             int pass = new Random().nextInt(90000) + 10000;
             o.setActivationPassword(pass);
+            int from = o.getState();
             o.setState(2);
-            return orderDAO.save(o);
+            Order saved = orderDAO.save(o);
+            try {
+                saveStateLog(saved, from, 2, "TMS", "Initial weighing registered");
+            } catch (Exception ex) {
+                log.warn("Could not save state log: " + ex.getMessage());
+            }
+            return saved;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -174,8 +219,15 @@ public class OrderBusiness implements IOrderBusiness {
             if (o.getState() != 2) {
                 throw BusinessException.builder().message("Orden no en estado 2").build();
             }
+            int from = o.getState();
             o.setState(3);
-            return orderDAO.save(o);
+            Order saved = orderDAO.save(o);
+            try {
+                saveStateLog(saved, from, 3, "user", "Order closed for loading");
+            } catch (Exception ex) {
+                log.warn("Could not save state log: " + ex.getMessage());
+            }
+            return saved;
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -193,8 +245,14 @@ public class OrderBusiness implements IOrderBusiness {
             }
             o.setFinalWeighing(finalWeighing);
             o.setTimeFinalWeighing(LocalDateTime.now());
+            int from = o.getState();
             o.setState(4);
-            orderDAO.save(o);
+            Order saved = orderDAO.save(o);
+            try {
+                saveStateLog(saved, from, 4, "TMS", "Final weighing registered");
+            } catch (Exception ex) {
+                log.warn("Could not save state log: " + ex.getMessage());
+            }
 
             // compute reconciliation
             Double initial = o.getInitialWeighing();
