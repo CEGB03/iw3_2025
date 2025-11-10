@@ -65,6 +65,13 @@ public class OrderBusiness implements IOrderBusiness {
         }
     
         try {
+            // Ensure new orders are created in the initial state and record reception time
+            if (orden.getState() == 0) {
+                orden.setState(1); // Estado 1: Pendiente de pesaje inicial
+            }
+            if (orden.getTimeInitialReception() == null) {
+                orden.setTimeInitialReception(LocalDateTime.now());
+            }
             return orderDAO.save(orden);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -114,9 +121,10 @@ public class OrderBusiness implements IOrderBusiness {
                 // Only accept details when in loading state
                 return o;
             }
-            if (o.getActivationPassword() != null && password != null) {
-                if (!o.getActivationPassword().equals(password)) {
-                    // invalid password -> discard
+            // If an activation password exists, require the client to provide it and match it
+            if (o.getActivationPassword() != null) {
+                if (password == null || !o.getActivationPassword().equals(password)) {
+                    // invalid or missing password -> discard
                     return o;
                 }
             }
@@ -197,9 +205,12 @@ public class OrderBusiness implements IOrderBusiness {
             java.util.List<OrderDetail> details = orderDetailDAO.findByOrderId(o.getId());
             Double avgTemp = null, avgDensity = null, avgFlow = null;
             if (details != null && !details.isEmpty()) {
-                avgTemp = details.stream().filter(d -> d.getTemperature() != null).mapToDouble(d -> d.getTemperature()).average().orElse(Double.NaN);
-                avgDensity = details.stream().filter(d -> d.getDensity() != null).mapToDouble(d -> d.getDensity()).average().orElse(Double.NaN);
-                avgFlow = details.stream().filter(d -> d.getFlow() != null).mapToDouble(d -> d.getFlow()).average().orElse(Double.NaN);
+                java.util.OptionalDouble t = details.stream().filter(d -> d.getTemperature() != null).mapToDouble(d -> d.getTemperature()).average();
+                java.util.OptionalDouble den = details.stream().filter(d -> d.getDensity() != null).mapToDouble(d -> d.getDensity()).average();
+                java.util.OptionalDouble f = details.stream().filter(d -> d.getFlow() != null).mapToDouble(d -> d.getFlow()).average();
+                if (t.isPresent()) avgTemp = t.getAsDouble();
+                if (den.isPresent()) avgDensity = den.getAsDouble();
+                if (f.isPresent()) avgFlow = f.getAsDouble();
             }
 
             Double diff = (netByScale == null) ? null : (netByScale - productLoaded);
