@@ -1,0 +1,92 @@
+{
+  "info": {
+    "_postman_id": "iw3-orders-collection",
+    "name": "IW3 Orders API - Circuit",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"preset\": 500.0,\n  \"externalCode\": \"EXT-1001\",\n  \"truck\": { \"id\": \"TRK-1\", \"licensePlate\": \"ABC123\", \"description\": \"Cisterna 1\" },\n  \"driver\": { \"id\": \"DRV-1\", \"name\": \"Juan\", \"lastName\": \"Perez\", \"dni\": 20123456 },\n  \"customer\": { \"id\": \"CUST-1\", \"socialNumber\": 123456789, \"phoneNumber\": 123456789 },\n  \"product\": { \"id\": \"PROD-1\", \"productName\": \"GLP\" }\n}\n"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/orders",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api","v1","orders"]
+        }
+      }
+    },
+    {
+      "name": "Register Initial Weighing",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "12000.0" },
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}/initial-weighing", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}","initial-weighing"] }
+      }
+    },
+    {
+      "name": "Add Detail (start loading)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Activation-Password", "value": "{{activationPassword}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"massAccumulated\": 10.0,\n  \"density\": 0.85,\n  \"temperature\": 12.0,\n  \"flow\": 3600.0,\n  \"timeStamp\": \"2025-11-10T10:00:00\"\n}\n" },
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}/detail", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}","detail"] }
+      }
+    },
+    {
+      "name": "Add Detail (progress)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "X-Activation-Password", "value": "{{activationPassword}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"massAccumulated\": 100.0,\n  \"density\": 0.85,\n  \"temperature\": 13.0,\n  \"flow\": 3600.0,\n  \"timeStamp\": \"2025-11-10T10:05:00\"\n}\n" },
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}/detail", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}","detail"] }
+      }
+    },
+    {
+      "name": "Close Order",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}/close", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}","close"] }
+      }
+    },
+    {
+      "name": "Finalize Weighing",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "12120.0" },
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}/final-weighing", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}","final-weighing"] }
+      }
+    },
+    {
+      "name": "Get Order",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "http://localhost:8080/api/v1/orders/{{orderId}}", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api","v1","orders","{{orderId}}"] }
+      }
+    }
+  ],
+  "event": [],
+  "variable": [
+    { "key": "orderId", "value": "1" },
+    { "key": "activationPassword", "value": "12345" }
+  ]
+}
