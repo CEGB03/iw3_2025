@@ -31,7 +31,7 @@ public class Order {
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private int id;
 
-    @Column (name = "States")
+    @Column (name = "States", columnDefinition = "tinyint default 1")
     private int state;
 
     @ManyToOne (cascade = CascadeType.ALL)
