@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class UnauthorizedException extends Exception{
+public class UnauthorizedException extends Exception {
 
     @Builder
     public UnauthorizedException(String message, Throwable ex) {
@@ -20,5 +20,4 @@ public class UnauthorizedException extends Exception{
     public UnauthorizedException(Throwable ex) {
         super(ex);
     }
-
 }

@@ -235,17 +235,20 @@ public class OrderRestController {
 		}
 	}
 
+	// Punto 3 -- Estado X
 	@PostMapping(value = "/{id}/detail")
-	public ResponseEntity<?> addDetail(@PathVariable int id, @RequestBody OrderDetail detail, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
-		try {
-			Order o = orderBusiness.addDetail(id, detail, password);
-			return new ResponseEntity<>(o, HttpStatus.OK);
-		} catch (BusinessException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
-		} catch (NotFoundException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
-		}
-	}
+    public ResponseEntity<?> addDetail(@PathVariable int id, @RequestBody OrderDetail detail, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
+        try {
+            Order o = orderBusiness.addDetail(id, detail, password);
+            return new ResponseEntity<>(o, HttpStatus.OK);
+        } catch (UnauthorizedException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.UNAUTHORIZED, e, e.getMessage()), HttpStatus.UNAUTHORIZED);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+        }
+    }
 
 	// Punto 3 -- Estado X
 	@PostMapping(value = "/{id}/start")

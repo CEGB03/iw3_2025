@@ -174,13 +174,25 @@ public class OrderBusiness implements IOrderBusiness {
                     .build();
         }
         
-        // Validar password si la orden tiene una contraseña de activación
+        //  Validar password si la orden tiene una contraseña de activación
         if (order.getActivationPassword() != null) {
             if (password == null || !order.getActivationPassword().equals(password)) {
-                log.error("Password incorrecta o faltante");
-                // Descartar silenciosamente: retornar la orden sin cambios
-                return order;
+                log.warn("Password incorrecta o faltante para orden {}. Esperado: {}, Recibido: {}", 
+                         id, order.getActivationPassword(), password);
+                throw UnauthorizedException.builder()
+                        .message("Password incorrecta o faltante")
+                        .build();
             }
+        }
+        
+        //  DESCARTAR registros inválidos (caudal ≤ 0 o masa ≤ 0) - NO GUARDAR
+        if (detail.getFlow() != null && detail.getFlow() <= 0) {
+            log.warn("Descartado detalle para orden {}: flow={} ≤ 0", id, detail.getFlow());
+            return order; // Retornar la orden sin cambios
+        }
+        if (detail.getMassAccumulated() != null && detail.getMassAccumulated() <= 0) {
+            log.warn("Descartado detalle para orden {}: massAccumulated={} ≤ 0", id, detail.getMassAccumulated());
+            return order; // Retornar la orden sin cambios
         }
         
         // Asociar detail con la orden
