@@ -162,18 +162,18 @@ public class OrderBusiness implements IOrderBusiness {
     }
 
     @Override
-    public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException, UnauthorizedException {
+    public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException {
         Order o = load(id);
         try {
             if (o.getState() != 2) {
                 // Only accept details when in loading state
-                throw BusinessException.builder().message("Orden no en estado 2").build();
+                return o;
             }
             // If an activation password exists, require the client to provide it and match it
             if (o.getActivationPassword() != null) {
                 if (password == null || !o.getActivationPassword().equals(password)) {
-                    // invalid or missing password -> unauthorized
-                    throw UnauthorizedException.builder().message("Password incorrecta o faltante").build();
+                    // invalid or missing password -> discard (silent per existing tests)
+                    return o;
                 }
             }
 

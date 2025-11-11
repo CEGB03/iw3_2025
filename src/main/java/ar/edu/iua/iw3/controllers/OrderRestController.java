@@ -76,6 +76,24 @@ public class OrderRestController {
 			if (ordenDto.getTruck() != null && ordenDto.getTruck().getId() != null) {
 				orden.setTruck(truckBusiness.load(ordenDto.getTruck().getId()));
 			}
+
+			// If truck info provided but no id, try to resolve by licensePlate or create a new Truck safely
+			if (orden.getTruck() != null && (orden.getTruck().getId() == null || orden.getTruck().getId().isEmpty())) {
+				String lp = orden.getTruck().getLicensePlate();
+				if (lp != null && !lp.isEmpty()) {
+					try {
+						orden.setTruck(truckBusiness.loadLicensePlate(lp));
+					} catch (NotFoundException ex) {
+						// Not found: create new truck using licensePlate as id to avoid null-id inserts
+						ar.edu.iua.iw3.model.Truck t = orden.getTruck();
+						// use license plate as identifier when external id not provided
+						if (t.getId() == null || t.getId().isEmpty()) {
+							t.setId(lp);
+						}
+						orden.setTruck(truckBusiness.add(t));
+					}
+				}
+			}
 			if (ordenDto.getDriver() != null && ordenDto.getDriver().getId() != null) {
 				orden.setDriver(driverBusiness.load(ordenDto.getDriver().getId()));
 			}
@@ -155,8 +173,6 @@ public class OrderRestController {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
 		} catch (NotFoundException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
-		} catch (UnauthorizedException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.UNAUTHORIZED, e, e.getMessage()), HttpStatus.UNAUTHORIZED);
 		}
 	}
 
