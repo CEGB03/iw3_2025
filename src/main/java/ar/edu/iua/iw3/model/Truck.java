@@ -28,7 +28,7 @@ import java.util.List;
 public class Truck {
 
     @Id
-    //@GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column (unique = true, nullable = false)

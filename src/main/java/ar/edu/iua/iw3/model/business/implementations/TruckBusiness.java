@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import ar.edu.iua.iw3.model.Cistern;
 import ar.edu.iua.iw3.model.Truck;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
@@ -68,10 +69,17 @@ public class TruckBusiness implements ITruckBusiness {
     @Override
     public Truck add(Truck truck) throws FoundException, BusinessException {
         try {
-            load(truck.getId());
-            throw FoundException.builder().message("El camión con id " + truck.getId() + " ya existe").build();
+            loadLicensePlate(truck.getLicensePlate());
+            throw FoundException.builder().message("El camión con patente " + truck.getLicensePlate() + " ya existe").build();
         } catch (NotFoundException e) {
             // Si no existe, se continúa
+        }
+        
+        // Establecer la relación bidireccional con las cisternas
+        if (truck.getTruncker() != null) {
+            for (Cistern cistern : truck.getTruncker()) {
+                cistern.setTruck(truck);
+            }
         }
 
         try {
