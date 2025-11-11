@@ -136,6 +136,9 @@ public class OrderBusiness implements IOrderBusiness {
             if (o.getState() != 1) {
                 throw BusinessException.builder().message("Orden no en estado 1").build();
             }
+            if(tare > 0){
+                throw BusinessException.builder().message("Pesaje inicial no puede ser negativo").build();
+            }
             o.setInitialWeighing(tare);
             o.setTimeInitialWeighing(LocalDateTime.now());
             // generate 5-digit password
@@ -172,6 +175,22 @@ public class OrderBusiness implements IOrderBusiness {
                     // invalid or missing password -> discard
                     return o;
                 }
+            }
+
+            // Check total cistern capacity: the new massAccumulated must not exceed total capacity
+            double totalCapacity = 0d;
+            if (o.getTruck() != null && o.getTruck().getTruncker() != null) {
+                try {
+                    totalCapacity = o.getTruck().getTruncker().stream()
+                            .filter(c -> c.getCapacity() != null)
+                            .mapToDouble(c -> c.getCapacity()).sum();
+                } catch (Exception ex) {
+                    // ignore and treat as zero capacity
+                    log.warn("Could not compute total cistern capacity: " + ex.getMessage());
+                }
+            }
+            if (detail.getMassAccumulated() != null && totalCapacity > 0d && detail.getMassAccumulated() > totalCapacity) {
+                throw BusinessException.builder().message("Mass accumulated (" + detail.getMassAccumulated() + ") exceeds total cistern capacity (" + totalCapacity + ")").build();
             }
 
             // validate detail
@@ -273,7 +292,17 @@ public class OrderBusiness implements IOrderBusiness {
 
             Double diff = (netByScale == null) ? null : (netByScale - productLoaded);
 
-            return new Reconciliation(initial, finalWeighing, productLoaded, netByScale, diff, avgTemp, avgDensity, avgFlow);
+            Reconciliation rec = new Reconciliation();
+            rec.setInitialWeighing(initial);
+            rec.setFinalWeighing(finalWeighing);
+            rec.setProductLoaded(productLoaded);
+            rec.setNetByScale(netByScale);
+            rec.setDifferenceScaleFlow(diff);
+            rec.setAvgTemperature(avgTemp);
+            rec.setAvgDensity(avgDensity);
+            rec.setAvgFlow(avgFlow);
+
+            return rec;
 
         } catch (BusinessException e) {
             throw e;

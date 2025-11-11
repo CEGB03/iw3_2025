@@ -1,14 +1,14 @@
 package ar.edu.iua.iw3.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Reconciliation {
     private Double initialWeighing;
     private Double finalWeighing;

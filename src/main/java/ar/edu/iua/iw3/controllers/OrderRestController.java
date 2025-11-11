@@ -11,6 +11,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.iua.iw3.model.Order;
 import ar.edu.iua.iw3.model.OrderDetail;
+import ar.edu.iua.iw3.controllers.dto.OrderRequestDTO;
+import ar.edu.iua.iw3.controllers.dto.OrderResponseDTO;
+import ar.edu.iua.iw3.controllers.dto.TruckDTO;
+import ar.edu.iua.iw3.controllers.mappers.OrderMapper;
+import ar.edu.iua.iw3.model.business.interfaces.ITruckBusiness;
+import ar.edu.iua.iw3.model.business.interfaces.IDriverBusiness;
+import ar.edu.iua.iw3.model.business.interfaces.ICustomerBusiness;
+import ar.edu.iua.iw3.model.business.interfaces.IProductBusiness;
 import ar.edu.iua.iw3.model.Reconciliation;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
@@ -33,37 +41,77 @@ public class OrderRestController {
     
     @Autowired
     private IOrderBusiness orderBusiness;
+	@Autowired
+	private OrderMapper orderMapper;
+	@Autowired
+	private ITruckBusiness truckBusiness;
+	@Autowired
+	private IDriverBusiness driverBusiness;
+	@Autowired
+	private ICustomerBusiness customerBusiness;
+	@Autowired
+	private IProductBusiness productBusiness;
     @Autowired
     private IStandartResponseBusiness response;
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> list() {
         try {
-            return new ResponseEntity<>(orderBusiness.list(), HttpStatus.OK);
+			java.util.List<Order> orders = orderBusiness.list();
+			java.util.List<OrderResponseDTO> dtos = orders.stream().map(o -> orderMapper.toDto(o)).toList();
+			return new ResponseEntity<>(dtos, HttpStatus.OK);
         } catch (BusinessException e) {
             return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PostMapping(value = "")
-	public ResponseEntity<?> add(@RequestBody Order orden) {
+	// Punto 1 -- Estado 1
+	@PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> add(@RequestBody OrderRequestDTO ordenDto) {
 		try {
-			Order response = orderBusiness.add(orden);
+			// map DTO to entity
+			Order orden = orderMapper.toEntity(ordenDto);
+
+			// Resolve related entities by id when provided in DTO to avoid creating duplicates
+			if (ordenDto.getTruck() != null && ordenDto.getTruck().getId() != null) {
+				orden.setTruck(truckBusiness.load(ordenDto.getTruck().getId()));
+			}
+			if (ordenDto.getDriver() != null && ordenDto.getDriver().getId() != null) {
+				orden.setDriver(driverBusiness.load(ordenDto.getDriver().getId()));
+			}
+			if (ordenDto.getCustomer() != null && ordenDto.getCustomer().getId() != null) {
+				orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getId()));
+			}
+			if (ordenDto.getProduct() != null && ordenDto.getProduct().getId() != null) {
+				orden.setProduct(productBusiness.load(ordenDto.getProduct().getId()));
+			}
+
+			// Ensure cistern back-references (truck -> cisterns) are set when truck is present
+			if (orden.getTruck() != null && orden.getTruck().getTruncker() != null) {
+				orden.getTruck().getTruncker().forEach(c -> c.setTruck(orden.getTruck()));
+			}
+
+			Order saved = orderBusiness.add(orden);
+
 			HttpHeaders responseHeaders = new HttpHeaders();
-			responseHeaders.set("location", Constants.URL_ORDERS + "/" + response.getId());
-			return new ResponseEntity<>(responseHeaders, HttpStatus.CREATED);
+			responseHeaders.set("location", Constants.URL_ORDERS + "/" + saved.getId());
+			OrderResponseDTO body = orderMapper.toDto(saved);
+			return new ResponseEntity<>(body, responseHeaders, HttpStatus.CREATED);
 		} catch (BusinessException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		} catch (FoundException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.FOUND, e, e.getMessage()), HttpStatus.FOUND);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
 		}
 	}
 
-    @GetMapping(value = "/{id}")
+	@GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> load(@PathVariable int id) {
 		try {
-			return new ResponseEntity<>(orderBusiness.load(id), HttpStatus.OK);
+			Order orden = orderBusiness.load(id);
+			return new ResponseEntity<>(orderMapper.toDto(orden), HttpStatus.OK);
 		} catch (BusinessException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
@@ -85,6 +133,7 @@ public class OrderRestController {
 		}
 	}
 
+	// Punto 2 -- Estado 2
 	@PostMapping(value = "/{id}/initial-weighing")
 	public ResponseEntity<?> registerInitialWeighing(@PathVariable int id, @RequestBody Double tare) {
 		try {
@@ -109,6 +158,7 @@ public class OrderRestController {
 		}
 	}
 
+	// Punto 3 -- Estado X
 	@PostMapping(value = "/{id}/start")
 	public ResponseEntity<?> startOrder(@PathVariable int id, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
 		try {
@@ -117,7 +167,7 @@ public class OrderRestController {
 			body.put("orderId", id);
 			body.put("preset", preset);
 			return new ResponseEntity<>(body, HttpStatus.OK);
-		} catch (NotFoundException e) {
+		} catch (NotFoundException e) {	
 			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
 		} catch (UnauthorizedException e) {
 			return new ResponseEntity<>(response.build(HttpStatus.UNAUTHORIZED, e, e.getMessage()), HttpStatus.UNAUTHORIZED);
@@ -126,6 +176,7 @@ public class OrderRestController {
 		}
 	}
 
+	// Punto 4 -- Estado 3
 	@PostMapping(value = "/{id}/close")
 	public ResponseEntity<?> closeOrder(@PathVariable int id) {
 		try {
@@ -138,6 +189,7 @@ public class OrderRestController {
 		}
 	}
 
+	// Punto 5 -- Estado 4
 	@PostMapping(value = "/{id}/final-weighing")
 	public ResponseEntity<?> finalizeWeighing(@PathVariable int id, @RequestBody Double finalWeighing) {
 		try {
