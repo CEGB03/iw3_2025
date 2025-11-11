@@ -73,111 +73,53 @@ public class OrderRestController {
             // map DTO to entity
             Order orden = orderMapper.toEntity(ordenDto);
 
-            // ✅ Product: buscar por nombre si existe, sino generar id para insertar
-            if (ordenDto.getProduct() != null) {
-                if (ordenDto.getProduct().getId() != null) {
-                    try {
-                        orden.setProduct(productBusiness.load(ordenDto.getProduct().getId()));
-                    } catch (NotFoundException nf) {
-                        orden.getProduct().setId(java.util.UUID.randomUUID().toString());
-                    }
-                } else if (ordenDto.getProduct().getProductName() != null) {
-                    try {
-                        orden.setProduct(productBusiness.load(ordenDto.getProduct().getProductName()));
-                    } catch (NotFoundException nf) {
-                        // No existe por nombre -> generar UUID para inserción
-                        orden.getProduct().setId(java.util.UUID.randomUUID().toString());
-                    }
-                } else {
-                    // No tiene ni id ni productName -> generar UUID
-                    orden.getProduct().setId(java.util.UUID.randomUUID().toString());
+            // ✅ Product: buscar por nombre si existe, sino persistir
+            if (ordenDto.getProduct() != null && ordenDto.getProduct().getProductName() != null) {
+                try {
+                    orden.setProduct(productBusiness.load(ordenDto.getProduct().getProductName()));
+                } catch (NotFoundException nf) {
+                    // No existe -> persistir (JPA genera id automáticamente)
+                    orden.setProduct(productBusiness.add(orden.getProduct()));
                 }
             }
 
-            // ✅ Truck: buscar por licensePlate si existe
+            // ✅ Truck: buscar por licensePlate si existe, sino persistir
             if (ordenDto.getTruck() != null) {
-                if (ordenDto.getTruck().getId() != null) {
-                    try {
-                        orden.setTruck(truckBusiness.load(ordenDto.getTruck().getId()));
-                    } catch (NotFoundException nf) {
-                        if (ordenDto.getTruck().getLicensePlate() != null) {
-                            try {
-                                orden.setTruck(truckBusiness.loadLicensePlate(ordenDto.getTruck().getLicensePlate()));
-                            } catch (NotFoundException nf2) {
-                                orden.getTruck().setId(java.util.UUID.randomUUID().toString());
-                            }
-                        } else {
-                            orden.getTruck().setId(java.util.UUID.randomUUID().toString());
-                        }
-                    }
-                } else if (ordenDto.getTruck().getLicensePlate() != null) {
+                // Asegurar back-references en cisternas ANTES de persistir
+                if (orden.getTruck().getTruncker() != null) {
+                    orden.getTruck().getTruncker().forEach(c -> c.setTruck(orden.getTruck()));
+                }
+
+                if (ordenDto.getTruck().getLicensePlate() != null) {
                     try {
                         orden.setTruck(truckBusiness.loadLicensePlate(ordenDto.getTruck().getLicensePlate()));
                     } catch (NotFoundException nf) {
-                        orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                        // No existe -> persistir (JPA genera id)
+                        orden.setTruck(truckBusiness.add(orden.getTruck()));
                     }
                 } else {
-                    orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                    orden.setTruck(truckBusiness.add(orden.getTruck()));
                 }
             }
 
-            // ✅ Driver: buscar por DNI si existe
-            if (ordenDto.getDriver() != null) {
-                if (ordenDto.getDriver().getId() != null) {
-                    try {
-                        orden.setDriver(driverBusiness.load(ordenDto.getDriver().getId()));
-                    } catch (NotFoundException nf) {
-                        if (ordenDto.getDriver().getDni() > 0) {
-                            try {
-                                orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
-                            } catch (NotFoundException nf2) {
-                                orden.getDriver().setId(java.util.UUID.randomUUID().toString());
-                            }
-                        } else {
-                            orden.getDriver().setId(java.util.UUID.randomUUID().toString());
-                        }
-                    }
-                } else if (ordenDto.getDriver().getDni() > 0) {
-                    try {
-                        orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
-                    } catch (NotFoundException nf2) {
-                        orden.getDriver().setId(java.util.UUID.randomUUID().toString());
-                    }
-                } else {
-                    orden.getDriver().setId(java.util.UUID.randomUUID().toString());
+            // ✅ Driver: buscar por DNI si existe, sino persistir
+            if (ordenDto.getDriver() != null && ordenDto.getDriver().getDni() > 0) {
+                try {
+                    orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
+                } catch (NotFoundException nf) {
+                    // No existe -> persistir (JPA genera id)
+                    orden.setDriver(driverBusiness.add(orden.getDriver()));
                 }
             }
 
-            // ✅ Customer: buscar por socialNumber si existe
-            if (ordenDto.getCustomer() != null) {
-                if (ordenDto.getCustomer().getId() != null) {
-                    try {
-                        orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getId()));
-                    } catch (NotFoundException nf) {
-                        if (ordenDto.getCustomer().getSocialNumber() > 0) {
-                            try {
-                                orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));
-                            } catch (NotFoundException nf2) {
-                                orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
-                            }
-                        } else {
-                            orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
-                        }
-                    }
-                } else if (ordenDto.getCustomer().getSocialNumber() > 0) {
-                    try {
-                        orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));
-                    } catch (NotFoundException nf2) {
-                        orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
-                    }
-                } else {
-                    orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
+            // ✅ Customer: buscar por socialNumber si existe, sino persistir
+            if (ordenDto.getCustomer() != null && ordenDto.getCustomer().getSocialNumber() > 0) {
+                try {
+                    orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));
+                } catch (NotFoundException nf) {
+                    // No existe -> persistir (JPA genera id)
+                    orden.setCustomer(customerBusiness.add(orden.getCustomer()));
                 }
-            }
-
-            // Asegurar back-references en cisternas
-            if (orden.getTruck() != null && orden.getTruck().getTruncker() != null) {
-                orden.getTruck().getTruncker().forEach(c -> c.setTruck(orden.getTruck()));
             }
 
             // Setear valores iniciales

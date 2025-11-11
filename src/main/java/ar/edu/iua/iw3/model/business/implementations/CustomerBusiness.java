@@ -65,26 +65,17 @@ public class CustomerBusiness implements ICustomerBusiness {
 
     @Override
     public Customer add(Customer customer) throws FoundException, BusinessException {
-        try {
-            load(customer.getId());
-            throw FoundException.builder().message("Ya existe el Cliente id= " + customer.getId()).build();
-        } catch (NotFoundException e) {
-            // log.trace(e.getMessage(), e);
-        }
-
-        try {
-            load(customer.getSocialNumber());
-            throw FoundException.builder().message("Ya existe el Cliente " + customer.getSocialNumber()).build();
-        } catch (NotFoundException e) {
-            // log.trace(e.getMessage(), e);
+        // No verificar por ID si es null
+        // Solo verificar si el socialNumber ya existe
+        if (customerDAO.findBySocialNumber(customer.getSocialNumber()).isPresent()) {
+            throw FoundException.builder().message("Ya existe un Customer con socialNumber=" + customer.getSocialNumber()).build();
         }
 
         try {
             return customerDAO.save(customer);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            //throw BusinessException.builder().ex(e).build();
-            throw BusinessException.builder().message("Error al Crear Nuevo Cliente").build();
+            throw BusinessException.builder().ex(e).build();
         }
     }
 

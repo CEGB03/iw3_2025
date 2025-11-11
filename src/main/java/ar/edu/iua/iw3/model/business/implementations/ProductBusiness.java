@@ -59,29 +59,18 @@ public class ProductBusiness implements IProductBusiness{
 
     @Override
     public Product add(Product product) throws FoundException, BusinessException {
-
-        try {
-            load(product.getId());
-            throw FoundException.builder().message("Ya existe el Producto Con Id:  " + product.getId()).build();
-        } catch (NotFoundException e) {
-            // log.trace(e.getMessage(), e);
-        }
-
-        try {
-            load(product.getProductName());
+        // ✅ NO verificar por ID si es null (caso de inserción nueva)
+        // Solo verificar si el productName ya existe
+        if (productDAO.findByProductName(product.getProductName()).isPresent()) {
             throw FoundException.builder().message("Ya existe el Producto " + product.getProductName()).build();
-        } catch (NotFoundException e) {
-            // log.trace(e.getMessage(), e);
         }
 
         try {
             return productDAO.save(product);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            //throw BusinessException.builder().ex(e).build();
             throw BusinessException.builder().message("Error al Crear Nuevo Producto").build();
         }
-
     }
 
     @Override
