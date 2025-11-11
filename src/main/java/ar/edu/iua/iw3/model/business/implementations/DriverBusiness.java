@@ -63,7 +63,7 @@ public class DriverBusiness implements IDriverBusiness {
 
     @Override
     public Driver add(Driver driver) throws FoundException, BusinessException {
-        // ✅ NO verificar por ID si es null (caso de inserción nueva)
+        //   NO verificar por ID si es null (caso de inserción nueva)
         // Solo verificar si el DNI ya existe
         if (driverDAO.findByDni(driver.getDni()).isPresent()) {
             throw FoundException.builder().message("Ya existe un Driver con DNI=" + driver.getDni()).build();

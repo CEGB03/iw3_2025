@@ -73,7 +73,7 @@ public class OrderRestController {
             // map DTO to entity
             Order orden = orderMapper.toEntity(ordenDto);
 
-            // ✅ Product: buscar por nombre si existe, sino persistir
+            //   Product: buscar por nombre si existe, sino persistir
             if (ordenDto.getProduct() != null && ordenDto.getProduct().getProductName() != null) {
                 try {
                     orden.setProduct(productBusiness.load(ordenDto.getProduct().getProductName()));
@@ -83,7 +83,7 @@ public class OrderRestController {
                 }
             }
 
-            // ✅ Truck: buscar por licensePlate si existe, sino persistir
+            //   Truck: buscar por licensePlate si existe, sino persistir
             if (ordenDto.getTruck() != null) {
                 // Asegurar back-references en cisternas ANTES de persistir
                 if (orden.getTruck().getTruncker() != null) {
@@ -102,7 +102,7 @@ public class OrderRestController {
                 }
             }
 
-            // ✅ Driver: buscar por DNI si existe, sino persistir
+            //   Driver: buscar por DNI si existe, sino persistir
             if (ordenDto.getDriver() != null && ordenDto.getDriver().getDni() > 0) {
                 try {
                     orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
@@ -112,7 +112,7 @@ public class OrderRestController {
                 }
             }
 
-            // ✅ Customer: buscar por socialNumber si existe, sino persistir
+            //   Customer: buscar por socialNumber si existe, sino persistir
             if (ordenDto.getCustomer() != null && ordenDto.getCustomer().getSocialNumber() > 0) {
                 try {
                     orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));

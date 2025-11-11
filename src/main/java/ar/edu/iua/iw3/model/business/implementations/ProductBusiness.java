@@ -59,7 +59,7 @@ public class ProductBusiness implements IProductBusiness{
 
     @Override
     public Product add(Product product) throws FoundException, BusinessException {
-        // ✅ NO verificar por ID si es null (caso de inserción nueva)
+        //   NO verificar por ID si es null (caso de inserción nueva)
         // Solo verificar si el productName ya existe
         if (productDAO.findByProductName(product.getProductName()).isPresent()) {
             throw FoundException.builder().message("Ya existe el Producto " + product.getProductName()).build();

@@ -288,6 +288,28 @@ public class OrderBusiness implements IOrderBusiness {
             if (o.getState() != 3) {
                 throw BusinessException.builder().message("Orden no en estado 3").build();
             }
+            
+            //  Validación: finalWeighing debe ser mayor que initialWeighing
+            if (finalWeighing == null || finalWeighing <= 0) {
+                throw BusinessException.builder()
+                        .message("El pesaje final debe ser mayor que cero")
+                        .build();
+            }
+            
+            if (o.getInitialWeighing() == null) {
+                throw BusinessException.builder()
+                        .message("No existe pesaje inicial registrado para esta orden")
+                        .build();
+            }
+            
+            if (finalWeighing <= o.getInitialWeighing()) {
+                throw BusinessException.builder()
+                        .message(String.format(
+                            "El pesaje final (%.2f) debe ser mayor que el pesaje inicial (%.2f)", 
+                            finalWeighing, o.getInitialWeighing()))
+                        .build();
+            }
+            
             o.setFinalWeighing(finalWeighing);
             o.setTimeFinalWeighing(LocalDateTime.now());
             int from = o.getState();
