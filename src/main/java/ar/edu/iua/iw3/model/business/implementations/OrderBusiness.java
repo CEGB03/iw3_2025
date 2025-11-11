@@ -136,8 +136,8 @@ public class OrderBusiness implements IOrderBusiness {
             if (o.getState() != 1) {
                 throw BusinessException.builder().message("Orden no en estado 1").build();
             }
-            if(tare > 0){
-                throw BusinessException.builder().message("Pesaje inicial no puede ser negativo").build();
+            if (tare == null || tare <= 0) {
+                throw BusinessException.builder().message("Pesaje inicial debe ser mayor que cero").build();
             }
             o.setInitialWeighing(tare);
             o.setTimeInitialWeighing(LocalDateTime.now());
@@ -162,18 +162,18 @@ public class OrderBusiness implements IOrderBusiness {
     }
 
     @Override
-    public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException {
+    public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException, UnauthorizedException {
         Order o = load(id);
         try {
             if (o.getState() != 2) {
                 // Only accept details when in loading state
-                return o;
+                throw BusinessException.builder().message("Orden no en estado 2").build();
             }
             // If an activation password exists, require the client to provide it and match it
             if (o.getActivationPassword() != null) {
                 if (password == null || !o.getActivationPassword().equals(password)) {
-                    // invalid or missing password -> discard
-                    return o;
+                    // invalid or missing password -> unauthorized
+                    throw UnauthorizedException.builder().message("Password incorrecta o faltante").build();
                 }
             }
 

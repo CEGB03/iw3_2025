@@ -2,7 +2,6 @@ package ar.edu.iua.iw3.model;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,16 +33,16 @@ public class Order {
     @Column (name = "States", columnDefinition = "tinyint default 1")
     private int state;
 
-    @ManyToOne (cascade = CascadeType.ALL)
+    @ManyToOne
     private Truck truck;
 
-    @ManyToOne (cascade = CascadeType.ALL)
+    @ManyToOne
     private Driver driver;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     private Customer customer;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     private Product product;
 
     @Column(name = "Time Initial Reception")

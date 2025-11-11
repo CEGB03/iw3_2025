@@ -24,7 +24,7 @@ public interface IOrderBusiness {
 	public Order registerInitialWeighing(int id, Double tare) throws NotFoundException, BusinessException;
 
 	// Punto 3: recibir dato de detalle en tiempo real. password opcional segun integración
-	public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException;
+	public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException, UnauthorizedException;
 
 	// Punto 4: cerrar orden para carga
 	public Order closeOrder(int id) throws NotFoundException, BusinessException;
