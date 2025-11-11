@@ -33,6 +33,9 @@ public interface IOrderBusiness {
     // Punto 5: registrar pesaje final y obtener conciliación
     public Reconciliation finalizeWeighing(int id, Double finalWeighing) throws NotFoundException, BusinessException;
 
+    // Punto 6: consultar conciliación de una orden finalizada (idempotente)
+    public Reconciliation getReconciliation(int id) throws NotFoundException, BusinessException;
+
     // Punto 3b: solicitar preset de la orden (requiere contraseña de activación si aplica)
     public Double getPreset(int id, Integer password)
         throws NotFoundException, BusinessException, UnauthorizedException;

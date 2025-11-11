@@ -237,4 +237,17 @@ public class OrderRestController {
 			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
 		}
 	}
+
+	// Punto 5 -- Estado X
+	@GetMapping(value = "/{id}/reconciliation")
+	public ResponseEntity<?> getReconciliation(@PathVariable int id) {
+		try {
+			Reconciliation r = orderBusiness.getReconciliation(id);
+			return new ResponseEntity<>(r, HttpStatus.OK);
+		} catch (BusinessException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (NotFoundException e) {
+			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
+		}
+	}
 }

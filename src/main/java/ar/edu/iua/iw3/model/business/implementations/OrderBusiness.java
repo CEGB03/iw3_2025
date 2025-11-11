@@ -360,4 +360,81 @@ public class OrderBusiness implements IOrderBusiness {
         }
     }
 
+
+    @Override
+    public Reconciliation getReconciliation(int id) throws NotFoundException, BusinessException {
+        Order o = load(id);
+        
+        try {
+            // Validar que la orden esté en estado 4 (finalizada)
+            if (o.getState() != 4) {
+                throw BusinessException.builder()
+                        .message("La orden no está finalizada. No se puede generar la conciliación.")
+                        .build();
+            }
+            
+            // Validar que existan los pesajes necesarios
+            if (o.getInitialWeighing() == null || o.getFinalWeighing() == null) {
+                throw BusinessException.builder()
+                        .message("Faltan datos de pesaje para generar la conciliación")
+                        .build();
+            }
+            
+            // Obtener valores base
+            Double initial = o.getInitialWeighing();
+            Double finalWeighing = o.getFinalWeighing();
+            Double productLoaded = o.getLastMassAccumulated() == null ? 0d : o.getLastMassAccumulated();
+            Double netByScale = finalWeighing - initial;
+            
+            // Calcular promedios sobre los detalles registrados
+            List<OrderDetail> details = orderDetailDAO.findByOrderId(o.getId());
+            Double avgTemp = null, avgDensity = null, avgFlow = null;
+            
+            if (details != null && !details.isEmpty()) {
+                java.util.OptionalDouble t = details.stream()
+                        .filter(d -> d.getTemperature() != null)
+                        .mapToDouble(OrderDetail::getTemperature)
+                        .average();
+                
+                java.util.OptionalDouble den = details.stream()
+                        .filter(d -> d.getDensity() != null)
+                        .mapToDouble(OrderDetail::getDensity)
+                        .average();
+                
+                java.util.OptionalDouble f = details.stream()
+                        .filter(d -> d.getFlow() != null && d.getFlow() > 0)
+                        .mapToDouble(OrderDetail::getFlow)
+                        .average();
+                
+                if (t.isPresent()) avgTemp = t.getAsDouble();
+                if (den.isPresent()) avgDensity = den.getAsDouble();
+                if (f.isPresent()) avgFlow = f.getAsDouble();
+            }
+            
+            // Calcular diferencia entre balanza y caudalímetro
+            Double diff = netByScale - productLoaded;
+            
+            // Construir objeto de conciliación
+            Reconciliation rec = new Reconciliation();
+            rec.setInitialWeighing(initial);
+            rec.setFinalWeighing(finalWeighing);
+            rec.setProductLoaded(productLoaded);
+            rec.setNetByScale(netByScale);
+            rec.setDifferenceScaleFlow(diff);
+            rec.setAvgTemperature(avgTemp);
+            rec.setAvgDensity(avgDensity);
+            rec.setAvgFlow(avgFlow);
+            
+            return rec;
+            
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al generar conciliación para orden {}: {}", id, e.getMessage(), e);
+            throw BusinessException.builder()
+                    .ex(e)
+                    .message("Error al generar la conciliación")
+                    .build();
+        }
+    }
 }
