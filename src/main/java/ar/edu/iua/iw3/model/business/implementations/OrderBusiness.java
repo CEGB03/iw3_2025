@@ -249,8 +249,7 @@ public class OrderBusiness implements IOrderBusiness {
             
             Order saved = orderDAO.save(order);
             
-            // ✅ Evitar cargar toda la colección de detalles
-            saved.setDetails(null);
+            // Las anotaciones @JsonManagedReference y @JsonBackReference previenen la recursión infinita
             return saved;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
