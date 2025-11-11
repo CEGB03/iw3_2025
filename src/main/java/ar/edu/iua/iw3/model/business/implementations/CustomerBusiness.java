@@ -3,6 +3,7 @@ package ar.edu.iua.iw3.model.business.implementations;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.model.Customer;
@@ -16,8 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
-public class CustomerBusiness implements ICustomerBusiness{
+public class CustomerBusiness implements ICustomerBusiness {
     
+    @Autowired
     private CustomerRepository customerDAO;
 
     @Override

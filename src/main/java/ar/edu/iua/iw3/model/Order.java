@@ -33,16 +33,16 @@ public class Order {
     @Column (name = "States", columnDefinition = "tinyint default 1")
     private int state;
 
-    @ManyToOne
+    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
     private Truck truck;
 
-    @ManyToOne
+    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
     private Driver driver;
 
-    @ManyToOne
+    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
     private Customer customer;
 
-    @ManyToOne
+    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
     private Product product;
 
     @Column(name = "Time Initial Reception")

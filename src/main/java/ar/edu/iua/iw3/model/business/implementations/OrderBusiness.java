@@ -162,72 +162,46 @@ public class OrderBusiness implements IOrderBusiness {
     }
 
     @Override
-    public Order addDetail(int id, OrderDetail detail, Integer password) throws NotFoundException, BusinessException {
-        Order o = load(id);
+    public Order addDetail(int id, OrderDetail detail, Integer password) 
+            throws NotFoundException, BusinessException, UnauthorizedException {
+        
+        Order order = load(id);
+        
+        // Validar estado: debe estar en estado 2 (pesaje inicial registrado, carga en progreso)
+        if (order.getState() != 2) {
+            throw BusinessException.builder()
+                    .message("Orden no está en estado de carga (estado 2)")
+                    .build();
+        }
+        
+        // Validar password si la orden tiene una contraseña de activación
+        if (order.getActivationPassword() != null) {
+            if (password == null || !order.getActivationPassword().equals(password)) {
+                log.error("Password incorrecta o faltante");
+                // Descartar silenciosamente: retornar la orden sin cambios
+                return order;
+            }
+        }
+        
+        // Asociar detail con la orden
+        detail.setOrder(order);
+        
         try {
-            if (o.getState() != 2) {
-                // Only accept details when in loading state
-                return o;
-            }
-            // If an activation password exists, require the client to provide it and match it
-            if (o.getActivationPassword() != null) {
-                if (password == null || !o.getActivationPassword().equals(password)) {
-                    // invalid or missing password -> discard (silent per existing tests)
-                    return o;
-                }
-            }
-
-            // Check total cistern capacity: the new massAccumulated must not exceed total capacity
-            double totalCapacity = 0d;
-            if (o.getTruck() != null && o.getTruck().getTruncker() != null) {
-                try {
-                    totalCapacity = o.getTruck().getTruncker().stream()
-                            .filter(c -> c.getCapacity() != null)
-                            .mapToDouble(c -> c.getCapacity()).sum();
-                } catch (Exception ex) {
-                    // ignore and treat as zero capacity
-                    log.warn("Could not compute total cistern capacity: " + ex.getMessage());
-                }
-            }
-            if (detail.getMassAccumulated() != null && totalCapacity > 0d && detail.getMassAccumulated() > totalCapacity) {
-                throw BusinessException.builder().message("Mass accumulated (" + detail.getMassAccumulated() + ") exceeds total cistern capacity (" + totalCapacity + ")").build();
-            }
-
-            // validate detail
-            if (detail.getFlow() == null || detail.getFlow() <= 0) {
-                return o;
-            }
-            if (detail.getMassAccumulated() == null || detail.getMassAccumulated() <= 0) {
-                return o;
-            }
-            if (o.getLastMassAccumulated() != null && detail.getMassAccumulated() <= o.getLastMassAccumulated()) {
-                return o;
-            }
-
-            // set timestamps and associations
-            if (detail.getTimeStamp() == null) {
-                detail.setTimeStamp(LocalDateTime.now());
-            }
-            detail.setOrder(o);
-            // persist detail
+            // Guardar el detalle
             orderDetailDAO.save(detail);
-
-            // update header last values
-            o.setLastMassAccumulated(detail.getMassAccumulated());
-            o.setLastDensity(detail.getDensity());
-            o.setLastTemperature(detail.getTemperature());
-            o.setLastFlow(detail.getFlow());
-            o.setLastTimestamp(detail.getTimeStamp());
-            if (o.getTimeInitialLoading() == null) {
-                o.setTimeInitialLoading(detail.getTimeStamp());
-            }
-            o.setTimeFinalLoading(detail.getTimeStamp());
-
-            return orderDAO.save(o);
-
+            
+            // Actualizar cabecera con últimos valores recibidos
+            order.setLastMassAccumulated(detail.getMassAccumulated());
+            order.setLastDensity(detail.getDensity());
+            order.setLastTemperature(detail.getTemperature());
+            order.setLastFlow(detail.getFlow());
+            order.setLastTimestamp(detail.getTimeStamp());
+            
+            // Guardar orden actualizada
+            return orderDAO.save(order);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            throw BusinessException.builder().ex(e).message(e.getMessage()).build();
+            throw BusinessException.builder().ex(e).build();
         }
     }
 

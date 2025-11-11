@@ -69,61 +69,132 @@ public class OrderRestController {
 	@PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> add(@RequestBody OrderRequestDTO ordenDto) {
 		try {
-			// map DTO to entity
-			Order orden = orderMapper.toEntity(ordenDto);
+            // map DTO to entity
+            Order orden = orderMapper.toEntity(ordenDto);
 
-			// Resolve related entities by id when provided in DTO to avoid creating duplicates
-			if (ordenDto.getTruck() != null && ordenDto.getTruck().getId() != null) {
-				orden.setTruck(truckBusiness.load(ordenDto.getTruck().getId()));
-			}
+            // Truck: preferir cargar si existe; si no existe dejar el objeto sin id y permitir que el save de Order lo inserte por cascade
+            if (ordenDto.getTruck() != null) {
+                if (ordenDto.getTruck().getId() != null) {
+                    try {
+                        orden.setTruck(truckBusiness.load(ordenDto.getTruck().getId()));
+                    } catch (NotFoundException nf) {
+                        // id enviado pero no existe -> intentar por licensePlate
+                        if (ordenDto.getTruck().getLicensePlate() != null) {
+                            try {
+                                orden.setTruck(truckBusiness.loadLicensePlate(ordenDto.getTruck().getLicensePlate()));
+                            } catch (NotFoundException nf2) {
+                                // no existe por patente tampoco -> generar id para permitir que JPA inserte mediante cascade
+                                orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                            }
+                        } else {
+                            orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                        }
+                    }
+                } else if (ordenDto.getTruck().getLicensePlate() != null) {
+                    try {
+                        orden.setTruck(truckBusiness.loadLicensePlate(ordenDto.getTruck().getLicensePlate()));
+                    } catch (NotFoundException nf) {
+                        // no existe por patente -> generar id para que se inserte con cascade al guardar la Order
+                        orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                    }
+                } else {
+                    // sin id ni licensePlate -> generar id
+                    orden.getTruck().setId(java.util.UUID.randomUUID().toString());
+                }
+            }
 
-			// If truck info provided but no id, try to resolve by licensePlate or create a new Truck safely
-			if (orden.getTruck() != null && (orden.getTruck().getId() == null || orden.getTruck().getId().isEmpty())) {
-				String lp = orden.getTruck().getLicensePlate();
-				if (lp != null && !lp.isEmpty()) {
-					try {
-						orden.setTruck(truckBusiness.loadLicensePlate(lp));
-					} catch (NotFoundException ex) {
-						// Not found: create new truck using licensePlate as id to avoid null-id inserts
-						ar.edu.iua.iw3.model.Truck t = orden.getTruck();
-						// use license plate as identifier when external id not provided
-						if (t.getId() == null || t.getId().isEmpty()) {
-							t.setId(lp);
-						}
-						orden.setTruck(truckBusiness.add(t));
-					}
-				}
-			}
-			if (ordenDto.getDriver() != null && ordenDto.getDriver().getId() != null) {
-				orden.setDriver(driverBusiness.load(ordenDto.getDriver().getId()));
-			}
-			if (ordenDto.getCustomer() != null && ordenDto.getCustomer().getId() != null) {
-				orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getId()));
-			}
-			if (ordenDto.getProduct() != null && ordenDto.getProduct().getId() != null) {
-				orden.setProduct(productBusiness.load(ordenDto.getProduct().getId()));
-			}
+            // Driver
+            if (ordenDto.getDriver() != null) {
+                if (ordenDto.getDriver().getId() != null) {
+                    try {
+                        orden.setDriver(driverBusiness.load(ordenDto.getDriver().getId()));
+                    } catch (NotFoundException nf) {
+                        if (ordenDto.getDriver().getDni() > 0) {
+                            try {
+                                orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
+                            } catch (NotFoundException nf2) {
+                                orden.getDriver().setId(java.util.UUID.randomUUID().toString());
+                            }
+                        } else {
+                            orden.getDriver().setId(java.util.UUID.randomUUID().toString());
+                        }
+                    }
+                } else {
+                    // sin id -> buscar por dni si existe, sino generar
+                    if (ordenDto.getDriver().getDni() > 0) {
+                        try {
+                            orden.setDriver(driverBusiness.load(ordenDto.getDriver().getDni()));
+                        } catch (NotFoundException nf2) {
+                            orden.getDriver().setId(java.util.UUID.randomUUID().toString());
+                        }
+                    } else {
+                        orden.getDriver().setId(java.util.UUID.randomUUID().toString());
+                    }
+                }
+            }
 
-			// Ensure cistern back-references (truck -> cisterns) are set when truck is present
-			if (orden.getTruck() != null && orden.getTruck().getTruncker() != null) {
-				orden.getTruck().getTruncker().forEach(c -> c.setTruck(orden.getTruck()));
-			}
+            // Customer
+            if (ordenDto.getCustomer() != null) {
+                if (ordenDto.getCustomer().getId() != null) {
+                    try {
+                        orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getId()));
+                    } catch (NotFoundException nf) {
+                        if (ordenDto.getCustomer().getSocialNumber() > 0) {
+                            try {
+                                orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));
+                            } catch (NotFoundException nf2) {
+                                orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
+                            }
+                        } else {
+                            orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
+                        }
+                    }
+                } else {
+                    // sin id -> buscar por socialNumber si existe, sino generar
+                    if (ordenDto.getCustomer().getSocialNumber() > 0) {
+                        try {
+                            orden.setCustomer(customerBusiness.load(ordenDto.getCustomer().getSocialNumber()));
+                        } catch (NotFoundException nf2) {
+                            orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
+                        }
+                    } else {
+                        orden.getCustomer().setId(java.util.UUID.randomUUID().toString());
+                    }
+                }
+            }
 
-			Order saved = orderBusiness.add(orden);
+            // Product
+            if (ordenDto.getProduct() != null) {
+                if (ordenDto.getProduct().getId() != null) {
+                    try {
+                        orden.setProduct(productBusiness.load(ordenDto.getProduct().getId()));
+                    } catch (NotFoundException nf) {
+                        orden.getProduct().setId(java.util.UUID.randomUUID().toString());
+                    }
+                } else {
+                    // sin id -> generar
+                    orden.getProduct().setId(java.util.UUID.randomUUID().toString());
+                }
+            }
 
-			HttpHeaders responseHeaders = new HttpHeaders();
-			responseHeaders.set("location", Constants.URL_ORDERS + "/" + saved.getId());
-			OrderResponseDTO body = orderMapper.toDto(saved);
-			return new ResponseEntity<>(body, responseHeaders, HttpStatus.CREATED);
-		} catch (BusinessException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
-					HttpStatus.INTERNAL_SERVER_ERROR);
-		} catch (FoundException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.FOUND, e, e.getMessage()), HttpStatus.FOUND);
-		} catch (NotFoundException e) {
-			return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
-		}
-	}
+            // Ensure cistern back-references (truck -> cisterns) are set when truck is present
+            if (orden.getTruck() != null && orden.getTruck().getTruncker() != null) {
+                orden.getTruck().getTruncker().forEach(c -> c.setTruck(orden.getTruck()));
+            }
+
+            Order saved = orderBusiness.add(orden);
+
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.set("location", Constants.URL_ORDERS + "/" + saved.getId());
+            OrderResponseDTO body = orderMapper.toDto(saved);
+            return new ResponseEntity<>(body, responseHeaders, HttpStatus.CREATED);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (FoundException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.FOUND, e, e.getMessage()), HttpStatus.FOUND);
+        }
+    }
 
 	@GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> load(@PathVariable int id) {
