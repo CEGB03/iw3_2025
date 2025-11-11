@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "Products")
@@ -27,8 +28,10 @@ public class Product {
 
     //Hay que poner para que nunca esté vacío con @NotEmpty, creo que tmb es de jakarta.validation
     @Column (unique = true, nullable = false)
+    @JsonProperty("productName")
     private String productName;
 
     @Column
+    @JsonProperty("description")
     private String description;
 }

@@ -185,32 +185,73 @@ public class OrderBusiness implements IOrderBusiness {
             }
         }
         
-        //  DESCARTAR registros inválidos (caudal ≤ 0 o masa ≤ 0) - NO GUARDAR
-        if (detail.getFlow() != null && detail.getFlow() <= 0) {
-            log.warn("Descartado detalle para orden {}: flow={} ≤ 0", id, detail.getFlow());
-            return order; // Retornar la orden sin cambios
-        }
-        if (detail.getMassAccumulated() != null && detail.getMassAccumulated() <= 0) {
-            log.warn("Descartado detalle para orden {}: massAccumulated={} ≤ 0", id, detail.getMassAccumulated());
-            return order; // Retornar la orden sin cambios
+        // VALIDACIONES: Si alguna falla, NO GUARDAR NADA
+        
+        // 1. Validar flow >= 0
+        if (detail.getFlow() == null || detail.getFlow() < 0) {
+            log.warn("Descartado detalle para orden {}: flow={} debe ser >= 0", id, detail.getFlow());
+            throw BusinessException.builder()
+                    .message("El caudal (flow) debe ser mayor o igual a 0")
+                    .build();
         }
         
-        // Asociar detail con la orden
+        // 2. Validar mass_accumulated >= 0
+        if (detail.getMassAccumulated() == null || detail.getMassAccumulated() < 0) {
+            log.warn("Descartado detalle para orden {}: massAccumulated={} debe ser >= 0", id, detail.getMassAccumulated());
+            throw BusinessException.builder()
+                    .message(String.format("La masa acumulada debe ser mayor o igual a 0 (recibido: %s)", detail.getMassAccumulated()))
+                    .build();
+        }
+        
+        // 3. Validar mass_accumulated >= mass_accumulated del registro anterior
+        List<OrderDetail> previousDetails = orderDetailDAO.findByOrderId(id);
+        if (!previousDetails.isEmpty()) {
+            // Obtener el último detalle registrado
+            OrderDetail lastDetail = previousDetails.stream()
+                    .max((d1, d2) -> d1.getTimeStamp().compareTo(d2.getTimeStamp()))
+                    .orElse(null);
+            
+            if (lastDetail != null && lastDetail.getMassAccumulated() != null) {
+                if (detail.getMassAccumulated() < lastDetail.getMassAccumulated()) {
+                    log.warn("Descartado detalle para orden {}: massAccumulated={} debe ser >= {}",
+                            id, detail.getMassAccumulated(), lastDetail.getMassAccumulated());
+                    throw BusinessException.builder()
+                            .message(String.format("La masa acumulada (mass_accumulated) debe ser mayor o igual a la anterior (%s)", 
+                                    lastDetail.getMassAccumulated()))
+                            .build();
+                }
+            }
+        }
+        
+        // 4. Validar 1 > density > 0  (es decir: 0 < density < 1)
+        if (detail.getDensity() == null || detail.getDensity() <= 0 || detail.getDensity() >= 1) {
+            log.warn("Descartado detalle para orden {}: density={} debe estar entre 0 y 1 (exclusivo)", 
+                    id, detail.getDensity());
+            throw BusinessException.builder()
+                    .message("La densidad (density) debe ser mayor a 0 y menor a 1")
+                    .build();
+        }
+        
+        // Si todas las validaciones pasan, guardar el detalle
         detail.setOrder(order);
+        detail.setTimeStamp(java.time.LocalDateTime.now());
         
         try {
             // Guardar el detalle
             orderDetailDAO.save(detail);
             
-            // Actualizar cabecera con últimos valores recibidos
+            // Actualizar cabecera
             order.setLastMassAccumulated(detail.getMassAccumulated());
             order.setLastDensity(detail.getDensity());
             order.setLastTemperature(detail.getTemperature());
             order.setLastFlow(detail.getFlow());
             order.setLastTimestamp(detail.getTimeStamp());
             
-            // Guardar orden actualizada
-            return orderDAO.save(order);
+            Order saved = orderDAO.save(order);
+            
+            // ✅ Evitar cargar toda la colección de detalles
+            saved.setDetails(null);
+            return saved;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).build();
