@@ -28,6 +28,14 @@ import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IOrderBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,9 +43,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-
 @RestController
 @RequestMapping(Constants.URL_ORDERS)
+@Tag(name = "Orders", description = "API de gestión de órdenes de carga")
 public class OrderRestController {
     
     @Autowired
@@ -55,6 +63,14 @@ public class OrderRestController {
     @Autowired
     private IStandartResponseBusiness response;
 
+    @Operation(
+        summary = "Listar todas las órdenes",
+        description = "Obtiene una lista de todas las órdenes registradas en el sistema"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de órdenes obtenida exitosamente"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> list() {
         try {
@@ -67,6 +83,15 @@ public class OrderRestController {
     }
 
 	// Punto 1 -- Estado 1
+	@Operation(
+        summary = "Crear una nueva orden",
+        description = "Crea una orden en estado 1 (pendiente de pesaje inicial). Registra la hora de recepción automáticamente."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Orden creada exitosamente"),
+        @ApiResponse(responseCode = "302", description = "La orden ya existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
 	@PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> add(@RequestBody OrderRequestDTO ordenDto) {
 		try {
@@ -167,8 +192,19 @@ public class OrderRestController {
 	}
 
 	// Punto 2 -- Estado 2
+	@Operation(
+        summary = "Registrar pesaje inicial (tara)",
+        description = "Registra el peso del camión vacío. Genera una contraseña de activación de 5 dígitos y cambia el estado a 2 (carga en progreso)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Pesaje inicial registrado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "Error interno o estado inválido")
+    })
 	@PostMapping(value = "/{id}/initial-weighing")
-	public ResponseEntity<?> registerInitialWeighing(@PathVariable int id, @RequestBody Double tare) {
+	public ResponseEntity<?> registerInitialWeighing(
+        @Parameter(description = "ID de la orden") @PathVariable int id, 
+        @Parameter(description = "Peso de la tara (kg)") @RequestBody Double tare) {
 		try {
 			Order o = orderBusiness.registerInitialWeighing(id, tare);
 			return new ResponseEntity<>(o, HttpStatus.OK);
@@ -179,9 +215,30 @@ public class OrderRestController {
 		}
 	}
 
-	// Punto 3 -- Estado X
+	// Punto 3 -- Estado == 2
+	@Operation(
+        summary = "Agregar detalle de carga en tiempo real",
+        description = """
+            Registra datos del caudalímetro durante la carga. Requiere contraseña de activación en el header.
+            
+            **Validaciones aplicadas:**
+            - flow >= 0
+            - massAccumulated >= 0 y >= valor anterior
+            - 0 < density < 1
+            - Orden debe estar en estado 2
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Detalle registrado exitosamente"),
+        @ApiResponse(responseCode = "401", description = "Contraseña de activación incorrecta o faltante"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "Error de validación o estado inválido")
+    })
 	@PostMapping(value = "/{id}/detail")
-    public ResponseEntity<?> addDetail(@PathVariable int id, @RequestBody OrderDetail detail, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
+    public ResponseEntity<?> addDetail(
+        @Parameter(description = "ID de la orden") @PathVariable int id, 
+        @RequestBody OrderDetail detail, 
+        @Parameter(description = "Contraseña de activación (5 dígitos)") @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
         try {
             Order o = orderBusiness.addDetail(id, detail, password);
             return new ResponseEntity<>(o, HttpStatus.OK);
@@ -194,7 +251,7 @@ public class OrderRestController {
         }
     }
 
-	// Punto 3 -- Estado X
+	// Punto 3 -- Estado == 2
 	@PostMapping(value = "/{id}/start")
 	public ResponseEntity<?> startOrder(@PathVariable int id, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
 		try {
@@ -226,8 +283,19 @@ public class OrderRestController {
 	}
 
 	// Punto 5 -- Estado 4
+	@Operation(
+        summary = "Registrar pesaje final",
+        description = "Registra el peso del camión lleno y calcula la conciliación automáticamente. Cambia el estado a 4 (finalizada). El pesaje final debe ser mayor que el inicial."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Pesaje final registrado y conciliación calculada"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "Error de validación o estado inválido")
+    })
 	@PostMapping(value = "/{id}/final-weighing")
-	public ResponseEntity<?> finalizeWeighing(@PathVariable int id, @RequestBody Double finalWeighing) {
+	public ResponseEntity<?> finalizeWeighing(
+        @Parameter(description = "ID de la orden") @PathVariable int id, 
+        @Parameter(description = "Peso final (kg)") @RequestBody Double finalWeighing) {
 		try {
 			Reconciliation r = orderBusiness.finalizeWeighing(id, finalWeighing);
 			return new ResponseEntity<>(r, HttpStatus.OK);
@@ -238,9 +306,29 @@ public class OrderRestController {
 		}
 	}
 
-	// Punto 5 -- Estado X
+	// Punto 5 -- Estado == 4
+	@Operation(
+        summary = "Consultar conciliación de una orden finalizada",
+        description = """
+            Obtiene la conciliación calculada de una orden. Solo funciona si la orden está en estado 4 (finalizada).
+            
+            **Datos incluidos:**
+            - Pesajes inicial y final
+            - Producto cargado según caudalímetro
+            - Neto por balanza
+            - Diferencia entre balanza y caudalímetro
+            - Promedios de temperatura, densidad y caudal
+            
+            Este endpoint es idempotente y no modifica datos.
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Conciliación obtenida exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "La orden no está finalizada (estado != 4)")
+    })
 	@GetMapping(value = "/{id}/reconciliation")
-	public ResponseEntity<?> getReconciliation(@PathVariable int id) {
+	public ResponseEntity<?> getReconciliation(@Parameter(description = "ID de la orden") @PathVariable int id) {
 		try {
 			Reconciliation r = orderBusiness.getReconciliation(id);
 			return new ResponseEntity<>(r, HttpStatus.OK);
