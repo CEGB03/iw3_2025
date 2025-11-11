@@ -15,8 +15,14 @@ import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.interfaces.ITruckBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping(Constants.URL_TRUCKS)
+@Tag(name = "Trucks", description = "Gestión de camiones")
 public class TruckRestController {
 
     @Autowired
@@ -25,6 +31,12 @@ public class TruckRestController {
     @Autowired
     private IStandartResponseBusiness response;
 
+    @Operation(summary = "Crear un nuevo camión", description = "Registra un nuevo camión en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Camión creado exitosamente"),
+        @ApiResponse(responseCode = "302", description = "El camión ya existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> add(@RequestBody Truck truck) {
         try {

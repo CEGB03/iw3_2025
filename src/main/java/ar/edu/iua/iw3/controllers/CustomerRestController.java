@@ -15,8 +15,14 @@ import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.interfaces.ICustomerBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping(Constants.URL_CUSTOMERS)
+@Tag(name = "Customers", description = "Gestión de clientes")
 public class CustomerRestController {
 
     @Autowired
@@ -25,6 +31,12 @@ public class CustomerRestController {
     @Autowired
     private IStandartResponseBusiness response;
 
+    @Operation(summary = "Crear un nuevo cliente", description = "Registra un nuevo cliente en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Cliente creado exitosamente"),
+        @ApiResponse(responseCode = "302", description = "El cliente ya existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> add(@RequestBody Customer customer) {
         try {

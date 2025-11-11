@@ -252,8 +252,20 @@ public class OrderRestController {
     }
 
 	// Punto 3 -- Estado == 2
+	@Operation(
+        summary = "Obtener preset de la orden para iniciar carga",
+        description = "Retorna el valor preset (cantidad esperada a cargar) de la orden. Requiere contraseña de activación si la orden tiene una asignada."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Preset obtenido exitosamente"),
+        @ApiResponse(responseCode = "401", description = "Contraseña de activación incorrecta o faltante"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "Error de validación o estado inválido")
+    })
 	@PostMapping(value = "/{id}/start")
-	public ResponseEntity<?> startOrder(@PathVariable int id, @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
+	public ResponseEntity<?> startOrder(
+        @Parameter(description = "ID de la orden") @PathVariable int id, 
+        @Parameter(description = "Contraseña de activación (5 dígitos)") @RequestHeader(name = "X-Activation-Password", required = false) Integer password) {
 		try {
 			Double preset = orderBusiness.getPreset(id, password);
 			java.util.Map<String, Object> body = new java.util.HashMap<>();
@@ -270,8 +282,17 @@ public class OrderRestController {
 	}
 
 	// Punto 4 -- Estado 3
+	@Operation(
+        summary = "Cerrar orden de carga",
+        description = "Marca la orden como cerrada para carga. Cambia el estado de 2 (carga en progreso) a 3 (pendiente de pesaje final)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Orden cerrada exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Orden no encontrada"),
+        @ApiResponse(responseCode = "500", description = "Error de validación o estado inválido")
+    })
 	@PostMapping(value = "/{id}/close")
-	public ResponseEntity<?> closeOrder(@PathVariable int id) {
+	public ResponseEntity<?> closeOrder(@Parameter(description = "ID de la orden") @PathVariable int id) {
 		try {
 			Order o = orderBusiness.closeOrder(id);
 			return new ResponseEntity<>(o, HttpStatus.OK);

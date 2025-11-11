@@ -15,8 +15,14 @@ import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IDriverBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping(Constants.URL_DRIVERS)
+@Tag(name = "Drivers", description = "Gestión de conductores")
 public class DriverRestController {
 
     @Autowired
@@ -25,6 +31,12 @@ public class DriverRestController {
     @Autowired
     private IStandartResponseBusiness response;
 
+    @Operation(summary = "Crear un nuevo conductor", description = "Registra un nuevo conductor en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Conductor creado exitosamente"),
+        @ApiResponse(responseCode = "302", description = "El conductor ya existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> add(@RequestBody Driver driver) {
         try {

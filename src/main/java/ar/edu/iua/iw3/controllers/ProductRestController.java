@@ -15,8 +15,14 @@ import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IProductBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping(Constants.URL_PRODUCTS)
+@Tag(name = "Products", description = "Gestión de productos")
 public class ProductRestController {
 
     @Autowired
@@ -25,6 +31,12 @@ public class ProductRestController {
     @Autowired
     private IStandartResponseBusiness response;
 
+    @Operation(summary = "Crear un nuevo producto", description = "Registra un nuevo producto en el sistema")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Producto creado exitosamente"),
+        @ApiResponse(responseCode = "302", description = "El producto ya existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
     @PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> add(@RequestBody Product product) {
         try {
