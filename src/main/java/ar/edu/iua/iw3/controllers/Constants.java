@@ -9,5 +9,6 @@ public final class Constants {
     public static final String URL_DRIVERS = URL_BASE + "/drivers";
     public static final String URL_CUSTOMERS = URL_BASE + "/customers";
     public static final String URL_PRODUCTS = URL_BASE + "/products";
+    public static final String URL_LOGIN = URL_BASE + "/login";
 
 }
