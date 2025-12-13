@@ -1,4 +1,4 @@
-package ar.edu.iua.iw3.config;
+package ar.edu.iua.iw3.controllers.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

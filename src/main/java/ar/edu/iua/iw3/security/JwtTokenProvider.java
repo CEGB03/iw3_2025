@@ -7,7 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ar.edu.iua.iw3.config.JwtProperties;
+import ar.edu.iua.iw3.controllers.config.JwtProperties;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +53,36 @@ public class JwtTokenProvider {
                     .build();
         }
     }
+
+    public String generateToken(String username, String role) throws BusinessException {
+    try {
+        SecretKey key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+
+        long now = System.currentTimeMillis();
+        Date issuedAt = new Date(now);
+        Date expiresAt = new Date(now + jwtProperties.getExpirationTime());
+
+        String token = Jwts.builder()
+                .subject(username)
+                .claim("role", role) // 🔥 ACÁ VIAJA EL ROL
+                .issuedAt(issuedAt)
+                .expiration(expiresAt)
+                .issuer(jwtProperties.getIssuer())
+                .audience().add(jwtProperties.getAudience()).and()
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+
+        log.debug("Token generado para usuario: {} con rol {}", username, role);
+        return token;
+
+    } catch (Exception e) {
+        log.error("Error generando token JWT: {}", e.getMessage(), e);
+        throw BusinessException.builder()
+                .ex(e)
+                .message("Error al generar token JWT")
+                .build();
+    }
+}
 
     /**
      * Valida un token JWT y retorna el nombre de usuario
@@ -135,4 +165,23 @@ public class JwtTokenProvider {
             return true;
         }
     }
+
+    public String getRoleFromToken(String token) {
+    try {
+        SecretKey key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getPayload();
+
+        return claims.get("role", String.class);
+
+    } catch (Exception e) {
+        log.error("Error extrayendo rol del token: {}", e.getMessage());
+        return null;
+    }
+}
+
 }

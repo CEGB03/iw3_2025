@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -35,15 +38,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     // Validar token y obtener username
                     String username = jwtTokenProvider.validateAndGetUsername(token);
-                    
-                    // Crear autenticación
-                    UsernamePasswordAuthenticationToken authentication = 
-                        new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
-                    
-                    // Establecer en SecurityContext
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    
-                    log.debug("Usuario {} autenticado con JWT", username);
+
+                    // Obtener rol si es necesario
+                    String role = jwtTokenProvider.getRoleFromToken(token);
+
+                    if (username != null && role != null) {
+
+                        List<GrantedAuthority> authorities =
+                            List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
+                        UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                        log.debug("Usuario {} autenticado con rol {}", username, role);
+                    }
                     
                 } catch (UnauthorizedException e) {
                     log.warn("Token inválido: {}", e.getMessage());
