@@ -21,7 +21,7 @@ import lombok.Setter;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String username;
@@ -29,6 +29,4 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
-
-
 }
