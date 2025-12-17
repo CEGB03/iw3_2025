@@ -59,7 +59,7 @@ if [ -f /tmp/iw3_2025/docs/db/seed_base.sql ]; then
         echo "✅ Datos base insertados correctamente (Products, Customers, Drivers, Trucks)"
     else
         echo "⚠️  Error al ejecutar seed. Puede que ya existan datos o falte alguna tabla"
-        echo "   Revisa manualmente con: docker exec -it mysql mysql -uuser -p'1u4rootiw3' iw3_2025_prod"
+        echo "   Revisa manualmente con: docker exec -it mysql_iw3 mysql -uuser -p'1u4rootiw3' iw3_2025_prod"
     fi
 else
     echo "⚠️  Archivo seed_base.sql no encontrado en /tmp/iw3_2025/docs/db/"
