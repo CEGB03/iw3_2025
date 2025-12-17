@@ -98,4 +98,6 @@ public class Order {
     @JsonManagedReference
     private List<OrderDetail> details = new ArrayList<>();
 
+    @Column(name = "temperature_alarm_sent")
+    private Boolean temperatureAlarmSent = false;
 }

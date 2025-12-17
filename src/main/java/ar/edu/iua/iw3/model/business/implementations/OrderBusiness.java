@@ -13,6 +13,7 @@ import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IOrderBusiness;
+import ar.edu.iua.iw3.model.business.interfaces.ITemperatureAlarmBusiness;
 import ar.edu.iua.iw3.model.persistence.OrderRepository;
 import ar.edu.iua.iw3.model.persistence.OrderDetailRepository;
 import ar.edu.iua.iw3.model.persistence.OrderStateLogRepository;
@@ -34,6 +35,9 @@ public class OrderBusiness implements IOrderBusiness {
 
     @Autowired
     private OrderStateLogRepository stateLogDAO;
+
+    @Autowired
+    private ITemperatureAlarmBusiness temperatureAlarmBusiness;
 
     private void saveStateLog(Order order, int fromState, int toState, String actor, String notes) {
         try {
@@ -239,15 +243,22 @@ public class OrderBusiness implements IOrderBusiness {
         try {
             // Guardar el detalle
             orderDetailDAO.save(detail);
-            
+
             // Actualizar cabecera
             order.setLastMassAccumulated(detail.getMassAccumulated());
             order.setLastDensity(detail.getDensity());
             order.setLastTemperature(detail.getTemperature());
             order.setLastFlow(detail.getFlow());
             order.setLastTimestamp(detail.getTimeStamp());
-            
+
             Order saved = orderDAO.save(order);
+
+            // Disparar alarma de temperatura (no bloqueante)
+            try {
+                temperatureAlarmBusiness.handle(saved, detail.getTemperature());
+            } catch (Exception alarmEx) {
+                log.warn("No se pudo procesar alarma de temperatura para orden {}: {}", id, alarmEx.getMessage());
+            }
             
             // Las anotaciones @JsonManagedReference y @JsonBackReference previenen la recursión infinita
             return saved;
