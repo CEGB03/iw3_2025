@@ -4,6 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -170,5 +173,41 @@ public class LoginController {
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> whoAmI() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return new ResponseEntity<>(response.build(HttpStatus.UNAUTHORIZED, null, "No autenticado"), HttpStatus.UNAUTHORIZED);
+        }
+        String username = String.valueOf(auth.getPrincipal());
+        String role = auth.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse(null);
+
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("username", username);
+        body.put("role", role);
+        return new ResponseEntity<>(body, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/test-admin")
+    public ResponseEntity<?> testAdmin() {
+        return new ResponseEntity<>("OK ADMIN", HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('OPERADOR')")
+    @GetMapping("/test-operator")
+    public ResponseEntity<?> testOperator() {
+        return new ResponseEntity<>("OK OPERADOR", HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('VISOR')")
+    @GetMapping("/test-viewer")
+    public ResponseEntity<?> testViewer() {
+        return new ResponseEntity<>("OK VISOR", HttpStatus.OK);
     }
 }

@@ -16,6 +16,7 @@ import ar.edu.iua.iw3.model.Order;
 import ar.edu.iua.iw3.model.OrderDetail;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
+import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.persistence.OrderDetailRepository;
 import ar.edu.iua.iw3.model.persistence.OrderRepository;
 
@@ -92,12 +93,11 @@ public class OrderBusinessTest {
         d.setMassAccumulated(50.0);
         d.setFlow(100.0);
 
-        Order res = orderBusiness.addDetail(3, d, 11111); // wrong password
+        assertThrows(UnauthorizedException.class,
+                () -> orderBusiness.addDetail(3, d, 11111)); // password incorrecta
 
-        // expect no change
-        assertNotNull(res);
-        assertNull(res.getLastMassAccumulated());
         verify(orderDetailDAO, times(0)).save(any(OrderDetail.class));
+        verify(orderDAO, times(0)).save(any(Order.class));
     }
 
 }
