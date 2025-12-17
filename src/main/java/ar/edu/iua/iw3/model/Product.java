@@ -6,39 +6,32 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
-@Table(name="products")
-@Inheritance(strategy = InheritanceType.JOINED)
-@AllArgsConstructor
+@Table(name = "Products")
+@Inheritance(strategy = jakarta.persistence.InheritanceType.JOINED)
 @NoArgsConstructor
-@Getter
 @Setter
+@Getter
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Product {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private long id;
+    //Hay que poner para que nunca esté vacío con @NotEmpty, creo que tmb es de jakarta.validation
+    @Column (unique = true, nullable = false)
+    @JsonProperty("productName")
+    private String productName;
 
-	@Column(length = 100, unique=true, nullable=false)
-	private String product;
-
-	@Column(columnDefinition = "tinyint default 0")
-	private boolean stock = false;
-
-	private double precio;
-	
-	@ManyToOne
-	@JoinColumn(name="id_category", nullable = true)
-	private Category category;
-
+    @Column
+    @JsonProperty("description")
+    private String description;
 }

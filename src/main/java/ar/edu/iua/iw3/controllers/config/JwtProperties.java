@@ -1,0 +1,18 @@
+package ar.edu.iua.iw3.controllers.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Component
+@ConfigurationProperties(prefix = "jwt")
+@Getter
+@Setter
+public class JwtProperties {
+    private String secret;
+    private long expirationTime; // en milisegundos
+    private String issuer;
+    private String audience;
+}
