@@ -53,7 +53,7 @@ sleep 5
 # Ejecutar seed de datos base
 echo "📊 Ejecutando seed de datos base..."
 if [ -f /tmp/iw3_2025/docs/db/seed_base.sql ]; then
-    docker exec -i mysql mysql -uuser -p'1u4rootiw3' iw3_2025_prod < /tmp/iw3_2025/docs/db/seed_base.sql
+    docker exec -i mysql_iw3 mysql -uuser -p'1u4rootiw3' iw3_2025_prod < /tmp/iw3_2025/docs/db/seed_base.sql
     
     if [ $? -eq 0 ]; then
         echo "✅ Datos base insertados correctamente (Products, Customers, Drivers, Trucks)"
