@@ -29,7 +29,7 @@
       <tbody>
         <tr v-for="o in orders" :key="o.id">
           <td>{{ o.id }}</td>
-          <td>{{ o.orderNumber }}</td>
+          <td>{{ o.externalCode }}</td>
           <td>{{ o.state }}</td>
           <td>{{ o.truck?.licensePlate }}</td>
           <td>{{ o.preset }}</td>
