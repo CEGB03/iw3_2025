@@ -122,7 +122,8 @@ export default {
     const load = async () => {
       const res = await api.get(`/orders/${id}`)
       order.value = res.data
-      password.value = res.data.password || res.data.activationPassword || ''
+      // No exponer ni pre-cargar la contraseña desde backend en UI
+      password.value = ''
       // Si ya no está en estado 1, ocultar formulario de tara
       if (order.value && order.value.state !== 1) {
         showTareForm.value = false
@@ -179,14 +180,9 @@ export default {
         const res = await api.post(`/orders/${id}/initial-weighing`, JSON.stringify(tare.value), {
           headers: { 'Content-Type': 'application/json' }
         })
-        // Actualizar vista y mostrar password si llegó
+        // Actualizar vista (no mostrar contraseña por seguridad)
         await load()
-        const pw = res.data?.activationPassword
-        if (pw) {
-          alert('Tara registrada. Contraseña de activación: ' + pw)
-        } else {
-          alert('Tara registrada correctamente.')
-        }
+        alert('Tara registrada correctamente.')
       } catch (e) {
         alert(e.response?.data?.message || 'Error registrando tara')
       } finally {
