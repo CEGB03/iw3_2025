@@ -11,6 +11,7 @@
     <div class="mb-3">
       <button class="btn btn-primary" @click="refresh">Refrescar</button>
       <button v-if="role === 'ADMIN'" class="btn btn-success ms-2" @click="openCreateModal">➕ Crear Orden</button>
+      <button v-if="role === 'ADMIN'" class="btn btn-success ms-2" @click="openCreateUserModal">👤 Crear Usuario</button>
       <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
     </div>
 
@@ -243,6 +244,40 @@
     </div>
 
   </div>
+
+  <!-- Modal para crear usuario -->
+  <div v-if="showCreateUserModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.5); z-index:1050; display:flex; align-items:center; justify-content:center;" @click.self="closeCreateUserModal">
+    <div class="card" style="max-width: 500px; width: 90%;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0">👤 Crear Usuario</h5>
+          <button class="btn btn-sm btn-outline-secondary" @click="closeCreateUserModal">Cerrar</button>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre de usuario</label>
+          <input v-model="userForm.username" class="form-control" placeholder="usuario123" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contraseña</label>
+          <input v-model="userForm.password" type="password" class="form-control" placeholder="********" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Rol</label>
+          <select v-model="userForm.role" class="form-select">
+            <option value="">Seleccionar rol...</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="USER">USER</option>
+          </select>
+        </div>
+        <div v-if="userCreateResult" :class="userCreateResult.ok ? 'alert alert-success' : 'alert alert-danger'">
+          {{ userCreateResult.message }}
+        </div>
+        <div class="d-grid">
+          <button class="btn btn-success" :disabled="!canCreateUser" @click="createUser">Crear</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -258,6 +293,9 @@ export default {
     const user = localStorage.getItem('username') || ''
     const router = useRouter()
     const showCreateModal = ref(false)
+    const showCreateUserModal = ref(false)
+    const userForm = ref({ username: '', password: '', role: '' })
+    const userCreateResult = ref(null)
     const role = ref('')
 
     // Admin sections/forms
@@ -318,6 +356,31 @@ export default {
     const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('username'); router.push('/login') }
     const openCreateModal = () => {
       showCreateModal.value = true
+    }
+    const openCreateUserModal = () => {
+      userForm.value = { username: '', password: '', role: '' }
+      userCreateResult.value = null
+      showCreateUserModal.value = true
+    }
+    const closeCreateUserModal = () => {
+      showCreateUserModal.value = false
+    }
+    const canCreateUser = computed(() => {
+      return !!userForm.value.username && !!userForm.value.password && !!userForm.value.role
+    })
+    const createUser = async () => {
+      userCreateResult.value = null
+      try {
+        await api.post('/login/signup', {
+          username: userForm.value.username,
+          password: userForm.value.password,
+          role: userForm.value.role
+        })
+        userCreateResult.value = { ok: true, message: 'Usuario creado correctamente.' }
+        userForm.value = { username: '', password: '', role: '' }
+      } catch (e) {
+        userCreateResult.value = { ok: false, message: e.response?.data?.message || 'Error creando usuario' }
+      }
     }
 
     // Admin helpers
@@ -411,7 +474,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, canCreateDriver }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, canCreateDriver, showCreateUserModal, openCreateUserModal, closeCreateUserModal, userForm, userCreateResult, canCreateUser, createUser }
   }
 }
 </script>
