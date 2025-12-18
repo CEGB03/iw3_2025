@@ -54,9 +54,10 @@
 
       <div class="mb-3">
         <button v-if="order.state === 1 && !showTareForm" class="btn btn-success me-2" @click="showTareForm = true">Registrar Tara</button>
-        <button class="btn btn-primary me-2" @click="startOrder">Obtener Preset</button>
-        <button class="btn btn-warning me-2" @click="openDetailModal">Agregar Detalle</button>
-        <button class="btn btn-danger" @click="closeOrder">Cerrar Orden</button>
+        <button class="btn btn-primary me-2" :disabled="order.state !== 2" @click="startOrder">Obtener Preset</button>
+        <button class="btn btn-warning me-2" :disabled="order.state !== 2" @click="openDetailModal">Agregar Detalle</button>
+        <button class="btn btn-danger me-2" :disabled="order.state !== 2" @click="closeOrder">Cerrar Orden</button>
+        <button class="btn btn-info" :disabled="order.state !== 4" @click="toggleReconciliation">{{ showReconciliation ? 'Ocultar' : 'Ver' }} Conciliación</button>
       </div>
 
       <div v-if="showTareForm" class="card mb-3">
@@ -76,6 +77,22 @@
         </div>
       </div>
 
+      <div v-if="showReconciliation && reconciliation" class="mt-4">
+        <h5>Conciliación</h5>
+        <table class="table table-bordered">
+          <tbody>
+            <tr><th>Pesaje inicial (tara)</th><td>{{ reconciliation.initialWeighing }} kg</td></tr>
+            <tr><th>Pesaje final</th><td>{{ reconciliation.finalWeighing }} kg</td></tr>
+            <tr><th>Producto cargado</th><td>{{ reconciliation.productLoaded }} kg</td></tr>
+            <tr><th>Neto por balanza</th><td>{{ reconciliation.netByScale }} kg</td></tr>
+            <tr><th>Diferencia balanza/caudalímetro</th><td>{{ reconciliation.differenceScaleFlow }} kg</td></tr>
+            <tr><th>Temperatura promedio</th><td>{{ reconciliation.avgTemperature?.toFixed(2) || 'N/A' }} °C</td></tr>
+            <tr><th>Densidad promedio</th><td>{{ reconciliation.avgDensity?.toFixed(4) || 'N/A' }}</td></tr>
+            <tr><th>Caudal promedio</th><td>{{ reconciliation.avgFlow?.toFixed(2) || 'N/A' }} kg/h</td></tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="mt-4">
         <h5>Detalle guardado</h5>
         <table class="table">
@@ -90,16 +107,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div class="mt-4">
-        <h5>Conciliación</h5>
-        <div v-if="reconciliation"> 
-          <pre>{{ reconciliation }}</pre>
-        </div>
-        <div v-else>
-          <button class="btn btn-outline-info" @click="getReconciliation">Obtener conciliación</button>
-        </div>
       </div>
 
     </div>
@@ -178,6 +185,7 @@ export default {
     const passwordTimeoutMessage = ref('')
     const passwordTimeoutHandle = ref(null)
     const reconciliation = ref(null)
+    const showReconciliation = ref(false)
     const showTareForm = ref(false)
     const tare = ref(null)
     // Modal detalle
@@ -382,9 +390,16 @@ export default {
       }
     }
 
+    const toggleReconciliation = async () => {
+      if (!showReconciliation.value && !reconciliation.value) {
+        await getReconciliation()
+      }
+      showReconciliation.value = !showReconciliation.value
+    }
+
     onMounted(load)
 
-    return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare, 
+    return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, closeOrder, reconciliation, showReconciliation, getReconciliation, toggleReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare, 
       // detalle
       showDetailModal, openDetailModal, closeDetailModal, detailForm, isValidManualDetail, submitManualDetail, manualError, detailManualResult, onCsvSelected, csvRows, csvSummary, submitBulkDetails }
   }
