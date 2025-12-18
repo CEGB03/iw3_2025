@@ -55,7 +55,7 @@
       <div class="mb-3">
         <button v-if="order.state === 1 && !showTareForm" class="btn btn-success me-2" @click="showTareForm = true">Registrar Tara</button>
         <button class="btn btn-primary me-2" @click="startOrder">Obtener Preset</button>
-        <button class="btn btn-warning me-2" @click="addDetail">Agregar Detalle (simulado)</button>
+        <button class="btn btn-warning me-2" @click="openDetailModal">Agregar Detalle</button>
         <button class="btn btn-danger" @click="closeOrder">Cerrar Orden</button>
       </div>
 
@@ -104,6 +104,59 @@
 
     </div>
   </div>
+
+  <!-- Modal para agregar detalle -->
+  <div v-if="showDetailModal" style="position:fixed; inset:0; background: rgba(0,0,0,0.5); z-index:1050;" @click.self="closeDetailModal">
+    <div class="card" style="max-width: 720px; margin: 5% auto;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Agregar detalle de carga</h5>
+          <button class="btn btn-sm btn-outline-secondary" @click="closeDetailModal">Cerrar</button>
+        </div>
+
+        <div class="alert alert-secondary small">
+          Validaciones: flow ≥ 0, 0 < density < 1, mass_accumulated ≥ 0 y ≥ última masa (actual: {{ order?.lastMassAccumulated || 0 }}).
+        </div>
+
+        <div class="mb-3">
+          <h6 class="mb-2">Carga manual</h6>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">Masa acumulada (kg)</label>
+              <input type="number" step="0.01" min="0" v-model.number="detailForm.mass_accumulated" class="form-control" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Densidad (0-1)</label>
+              <input type="number" step="0.0001" min="0" max="1" v-model.number="detailForm.density" class="form-control" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Temperatura (°C)</label>
+              <input type="number" step="0.01" v-model.number="detailForm.temperature" class="form-control" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Caudal (kg/h)</label>
+              <input type="number" step="0.01" min="0" v-model.number="detailForm.flow" class="form-control" />
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-success" :disabled="!isValidManualDetail" @click="submitManualDetail">Enviar</button>
+            <small class="text-muted" v-if="manualError">{{ manualError }}</small>
+          </div>
+        </div>
+
+        <hr />
+
+        <div>
+          <h6 class="mb-2">Carga masiva (CSV: mass_accumulated,density,temperature,flow)</h6>
+          <input type="file" accept=".csv,.txt" @change="onCsvSelected" class="form-control" />
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-outline-primary" :disabled="!csvRows.length" @click="submitBulkDetails">Enviar archivo</button>
+            <small class="text-muted" v-if="csvSummary">{{ csvSummary }}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -124,6 +177,13 @@ export default {
     const reconciliation = ref(null)
     const showTareForm = ref(false)
     const tare = ref(null)
+    // Modal detalle
+    const showDetailModal = ref(false)
+    const detailForm = ref({ mass_accumulated: null, density: null, temperature: null, flow: null })
+    const manualError = ref('')
+    // CSV
+    const csvRows = ref([])
+    const csvSummary = ref('')
 
     const load = async () => {
       const res = await api.get(`/orders/${id}`)
@@ -203,22 +263,96 @@ export default {
       }
     }
 
-    const addDetail = async () => {
-      // Simula un detalle válido incremental
-      const last = order.value.lastMassAccumulated || 0
-      const detail = {
-        massAccumulated: (last || 0) + Math.floor(Math.random()*50 + 10),
-        density: 0.6 + Math.random()*0.2,
-        temperature: 10 + Math.random()*5,
-        flow: 500 + Math.random()*100,
-        timeStamp: new Date().toISOString()
-      }
+    const openDetailModal = async () => {
+      // Ejecuta start (punto 3) antes de permitir carga de detalle
+      await startOrder()
+      showDetailModal.value = true
+      manualError.value = ''
+      csvRows.value = []
+      csvSummary.value = ''
+    }
+
+    const isValidManualDetail = computed(() => {
+      const last = Number(order.value?.lastMassAccumulated || 0)
+      const m = detailForm.value.mass_accumulated
+      const d = detailForm.value.density
+      const t = detailForm.value.temperature
+      const f = detailForm.value.flow
+      const ok = (m !== null && !isNaN(m) && m >= 0 && m >= last) && (d !== null && d > 0 && d < 1) && (t !== null && !isNaN(t)) && (f !== null && f >= 0)
+      return ok
+    })
+
+    const submitManualDetail = async () => {
+      manualError.value = ''
+      if (!isValidManualDetail.value) { manualError.value = 'Revisá los valores: flow ≥ 0, 0 < density < 1, masa ≥ 0 y ≥ última.'; return }
       try {
-        await api.post(`/orders/${id}/detail`, detail, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
+        const payload = { ...detailForm.value, time_stamp: new Date().toISOString() }
+        await api.post(`/orders/${id}/detail`, payload, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
         await load()
+        // Reset parcial para siguiente carga
+        detailForm.value = { mass_accumulated: null, density: null, temperature: null, flow: null }
       } catch (e) {
         alert(e.response?.data?.message || 'Error agregando detalle')
       }
+    }
+
+    const onCsvSelected = (evt) => {
+      csvRows.value = []
+      csvSummary.value = ''
+      const file = evt.target.files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        try {
+          const text = String(reader.result || '')
+          const lines = text.split(/\r?\n/).filter(l => l.trim().length)
+          if (!lines.length) return
+          let startIdx = 0
+          // Detectar header
+          const first = lines[0].toLowerCase()
+          if (first.includes('mass') || first.includes('density')) startIdx = 1
+          for (let i = startIdx; i < lines.length; i++) {
+            const parts = lines[i].split(',').map(p => p.trim())
+            if (parts.length < 4) continue
+            const row = {
+              mass_accumulated: Number(parts[0]),
+              density: Number(parts[1]),
+              temperature: Number(parts[2]),
+              flow: Number(parts[3])
+            }
+            csvRows.value.push(row)
+          }
+          csvSummary.value = `Leídas ${csvRows.value.length} filas`;
+        } catch (err) {
+          csvSummary.value = 'Error leyendo archivo.'
+        }
+      }
+      reader.readAsText(file)
+    }
+
+    const submitBulkDetails = async () => {
+      if (!csvRows.value.length) return
+      let sent = 0, skipped = 0
+      let last = Number(order.value?.lastMassAccumulated || 0)
+      for (const r of csvRows.value) {
+        // Validaciones locales
+        const valid = r && typeof r.mass_accumulated === 'number' && !isNaN(r.mass_accumulated) && r.mass_accumulated >= 0 && r.mass_accumulated >= last && r.density > 0 && r.density < 1 && r.flow >= 0
+        if (!valid) { skipped++; continue }
+        try {
+          const payload = { ...r, time_stamp: new Date().toISOString() }
+          await api.post(`/orders/${id}/detail`, payload, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
+          sent++
+          last = r.mass_accumulated
+        } catch (e) {
+          skipped++
+        }
+      }
+      await load()
+      csvSummary.value = `Enviadas ${sent}, omitidas ${skipped}`
+    }
+
+    const closeDetailModal = () => {
+      showDetailModal.value = false
     }
 
     const closeOrder = async () => {
@@ -241,7 +375,9 @@ export default {
 
     onMounted(load)
 
-    return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
+    return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare, 
+      // detalle
+      showDetailModal, openDetailModal, closeDetailModal, detailForm, isValidManualDetail, submitManualDetail, manualError, onCsvSelected, csvRows, csvSummary, submitBulkDetails }
   }
 }
 </script>
