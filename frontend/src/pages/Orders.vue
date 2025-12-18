@@ -10,8 +10,24 @@
 
     <div class="mb-3">
       <button class="btn btn-primary" @click="refresh">Refrescar</button>
-      <button class="btn btn-danger ms-2" @click="openCreateModal">🔴 :V Crear Orden</button>
+      <button v-if="role === 'ADMIN'" class="btn btn-success ms-2" @click="openCreateModal">➕ Crear Orden</button>
       <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
+    </div>
+
+    <!-- Controles ADMIN -->
+    <div v-if="role === 'ADMIN'" class="mb-3">
+      <div class="d-flex flex-wrap gap-2">
+        <!-- Crear entidades -->
+        <button class="btn btn-outline-success" @click="toggleCreate('truck')">🚚 Crear Camión</button>
+        <button class="btn btn-outline-success" @click="toggleCreate('driver')">👷 Crear Conductor</button>
+        <button class="btn btn-outline-success" @click="toggleCreate('customer')">🧑‍💼 Crear Cliente</button>
+        <button class="btn btn-outline-success" @click="toggleCreate('product')">🛢️ Crear Producto</button>
+        <!-- Listar entidades -->
+        <button class="btn btn-outline-primary" @click="loadList('truck')">🚚📋 Listar Camiones</button>
+        <button class="btn btn-outline-primary" @click="loadList('driver')">👷📋 Listar Conductores</button>
+        <button class="btn btn-outline-primary" @click="loadList('customer')">🧑‍💼📋 Listar Clientes</button>
+        <button class="btn btn-outline-primary" @click="loadList('product')">🛢️📋 Listar Productos</button>
+      </div>
     </div>
 
     <table class="table table-striped">
@@ -36,6 +52,98 @@
           <td>{{ o.lastMassAccumulated }}</td>
           <td><router-link :to="`/orders/${o.id}`" class="btn btn-sm btn-primary">Ver</router-link></td>
         </tr>
+
+          <!-- Formularios de creación ADMIN -->
+          <div v-if="role === 'ADMIN'">
+            <!-- Crear Camión -->
+            <div v-if="createSection === 'truck'" class="card mb-3">
+              <div class="card-body">
+                <h6>🚚 Crear Camión</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente (ABC123)" /></div>
+                  <div class="col-md-6"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
+                  <div class="col-md-2 d-grid"><button class="btn btn-success" :disabled="!truckForm.licensePlate" @click="createTruck">Crear</button></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Crear Conductor -->
+            <div v-if="createSection === 'driver'" class="card mb-3">
+              <div class="card-body">
+                <h6>👷 Crear Conductor</h6>
+                <div class="row g-2">
+                  <div class="col-md-3"><input v-model.number="driverForm.dni" type="number" class="form-control" placeholder="DNI" /></div>
+                  <div class="col-md-3"><input v-model="driverForm.name" class="form-control" placeholder="Nombre" /></div>
+                  <div class="col-md-3"><input v-model="driverForm.lastName" class="form-control" placeholder="Apellido" /></div>
+                  <div class="col-md-3 d-grid"><button class="btn btn-success" :disabled="!driverForm.dni" @click="createDriver">Crear</button></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Crear Cliente -->
+            <div v-if="createSection === 'customer'" class="card mb-3">
+              <div class="card-body">
+                <h6>🧑‍💼 Crear Cliente</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><input v-model.number="customerForm.socialNumber" type="number" class="form-control" placeholder="CUIT/CUIL" /></div>
+                  <div class="col-md-4"><input v-model.number="customerForm.phoneNumber" type="number" class="form-control" placeholder="Teléfono" /></div>
+                  <div class="col-md-4"><input v-model="customerForm.mail" class="form-control" placeholder="Mail" /></div>
+                  <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!customerForm.socialNumber" @click="createCustomer">Crear</button></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Crear Producto -->
+            <div v-if="createSection === 'product'" class="card mb-3">
+              <div class="card-body">
+                <h6>🛢️ Crear Producto</h6>
+                <div class="row g-2">
+                  <div class="col-md-6"><input v-model="productForm.productName" class="form-control" placeholder="Nombre" /></div>
+                  <div class="col-md-6"><input v-model="productForm.description" class="form-control" placeholder="Descripción" /></div>
+                  <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!productForm.productName" @click="createProduct">Crear</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Listados ADMIN -->
+          <div v-if="role === 'ADMIN'">
+            <div v-if="listSection === 'truck'" class="card mb-3">
+              <div class="card-body">
+                <h6>🚚 Camiones</h6>
+                <table class="table table-sm"><thead><tr><th>Patente</th><th>Descripción</th></tr></thead><tbody>
+                  <tr v-for="t in trucksList" :key="t.id"><td>{{ t.licensePlate }}</td><td>{{ t.description }}</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+
+            <div v-if="listSection === 'driver'" class="card mb-3">
+              <div class="card-body">
+                <h6>👷 Conductores</h6>
+                <table class="table table-sm"><thead><tr><th>DNI</th><th>Nombre</th><th>Apellido</th></tr></thead><tbody>
+                  <tr v-for="d in driversList" :key="d.id"><td>{{ d.dni }}</td><td>{{ d.name }}</td><td>{{ d.lastName }}</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+
+            <div v-if="listSection === 'customer'" class="card mb-3">
+              <div class="card-body">
+                <h6>🧑‍💼 Clientes</h6>
+                <table class="table table-sm"><thead><tr><th>CUIT/CUIL</th><th>Teléfono</th><th>Mail</th></tr></thead><tbody>
+                  <tr v-for="c in customersList" :key="c.id"><td>{{ c.socialNumber }}</td><td>{{ c.phoneNumber }}</td><td>{{ c.mail }}</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+
+            <div v-if="listSection === 'product'" class="card mb-3">
+              <div class="card-body">
+                <h6>🛢️ Productos</h6>
+                <table class="table table-sm"><thead><tr><th>Nombre</th><th>Descripción</th></tr></thead><tbody>
+                  <tr v-for="p in productsList" :key="p.id"><td>{{ p.productName }}</td><td>{{ p.description }}</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+          </div>
       </tbody>
     </table>
 
@@ -55,11 +163,36 @@ export default {
     const user = localStorage.getItem('username') || ''
     const router = useRouter()
     const showCreateModal = ref(false)
+    const role = ref('')
+
+    // Admin sections/forms
+    const createSection = ref('')
+    const listSection = ref('')
+    const trucksList = ref([])
+    const driversList = ref([])
+    const customersList = ref([])
+    const productsList = ref([])
+    const truckForm = ref({ licensePlate: '', description: '' })
+    const driverForm = ref({ dni: null, name: '', lastName: '' })
+    const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
+    const productForm = ref({ productName: '', description: '' })
 
     const load = async () => {
       try {
-        const res = await api.get('/orders')
-        orders.value = res.data
+        // Cargar rol
+        try {
+          const me = await api.get('/login/me')
+          role.value = me.data?.role || ''
+        } catch (e) {
+          role.value = ''
+        }
+        // Listado de órdenes (solo ADMIN)
+        if (role.value === 'ADMIN') {
+          const res = await api.get('/orders')
+          orders.value = res.data
+        } else {
+          orders.value = []
+        }
       } catch (e) {
         if (e.response && e.response.status === 401) {
           router.push('/login')
@@ -73,9 +206,59 @@ export default {
       showCreateModal.value = true
     }
 
+    // Admin helpers
+    const toggleCreate = (what) => { createSection.value = createSection.value === what ? '' : what }
+    const loadList = async (what) => {
+      listSection.value = what
+      try {
+        if (what === 'truck') { const r = await api.get('/trucks'); trucksList.value = r.data }
+        if (what === 'driver') { const r = await api.get('/drivers'); driversList.value = r.data }
+        if (what === 'customer') { const r = await api.get('/customers'); customersList.value = r.data }
+        if (what === 'product') { const r = await api.get('/products'); productsList.value = r.data }
+      } catch (e) {
+        alert(e.response?.data?.message || 'Error al listar ' + what)
+      }
+    }
+
+    const createTruck = async () => {
+      try {
+        await api.post('/trucks', { licensePlate: truckForm.value.licensePlate, description: truckForm.value.description })
+        alert('Camión creado')
+        truckForm.value = { licensePlate: '', description: '' }
+        if (listSection.value === 'truck') { loadList('truck') }
+      } catch (e) { alert(e.response?.data?.message || 'Error creando camión') }
+    }
+
+    const createDriver = async () => {
+      try {
+        await api.post('/drivers', { dni: Number(driverForm.value.dni), name: driverForm.value.name, lastName: driverForm.value.lastName })
+        alert('Conductor creado')
+        driverForm.value = { dni: null, name: '', lastName: '' }
+        if (listSection.value === 'driver') { loadList('driver') }
+      } catch (e) { alert(e.response?.data?.message || 'Error creando conductor') }
+    }
+
+    const createCustomer = async () => {
+      try {
+        await api.post('/customers', { socialNumber: Number(customerForm.value.socialNumber), phoneNumber: Number(customerForm.value.phoneNumber), mail: customerForm.value.mail })
+        alert('Cliente creado')
+        customerForm.value = { socialNumber: null, phoneNumber: null, mail: '' }
+        if (listSection.value === 'customer') { loadList('customer') }
+      } catch (e) { alert(e.response?.data?.message || 'Error creando cliente') }
+    }
+
+    const createProduct = async () => {
+      try {
+        await api.post('/products', { productName: productForm.value.productName, description: productForm.value.description })
+        alert('Producto creado')
+        productForm.value = { productName: '', description: '' }
+        if (listSection.value === 'product') { loadList('product') }
+      } catch (e) { alert(e.response?.data?.message || 'Error creando producto') }
+    }
+
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct }
   }
 }
 </script>

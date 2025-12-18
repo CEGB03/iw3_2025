@@ -73,6 +73,7 @@ public class OrderRestController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> list() {
         try {
 			java.util.List<Order> orders = orderBusiness.list();
@@ -94,6 +95,7 @@ public class OrderRestController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
 	@PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<?> add(@RequestBody OrderRequestDTO ordenDto) {
 		try {
             // map DTO to entity
