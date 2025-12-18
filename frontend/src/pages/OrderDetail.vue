@@ -123,7 +123,9 @@ export default {
     const submitTare = async () => {
       if (!isValidTare.value) return
       try {
-        const res = await api.post(`/orders/${id}/initial-weighing`, tare.value)
+        const res = await api.post(`/orders/${id}/initial-weighing`, JSON.stringify(tare.value), {
+          headers: { 'Content-Type': 'application/json' }
+        })
         // Actualizar vista y mostrar password si llegó
         await load()
         const pw = res.data?.activationPassword
