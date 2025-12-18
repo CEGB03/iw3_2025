@@ -100,9 +100,62 @@
       <div v-if="listSection === 'driver'" class="card mb-3">
         <div class="card-body">
           <h6>👷 Conductores</h6>
-          <table class="table table-sm"><thead><tr><th>DNI</th><th>Nombre</th><th>Apellido</th></tr></thead><tbody>
-            <tr v-for="d in driversList" :key="d.id"><td>{{ d.dni }}</td><td>{{ d.name }}</td><td>{{ d.lastName }}</td></tr>
-          </tbody></table>
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>DNI</th><th>Nombre</th><th>Apellido</th><th>Camiones</th></tr>
+            </thead>
+            <tbody>
+              <template v-for="d in driversList" :key="d.id">
+                <tr>
+                  <td>{{ d.dni }}</td>
+                  <td>{{ d.name }}</td>
+                  <td>{{ d.lastName }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" @click="toggleDriver(d.id)" :aria-expanded="!!expandedDrivers[d.id]">
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="expandedDrivers[d.id]">
+                  <td colspan="4">
+                    <div v-if="driverTrucks[d.id] && driverTrucks[d.id].length">
+                      <table class="table table-sm mb-0">
+                        <thead><tr><th>Patente camión</th><th>Descripción</th><th>Cisterna</th></tr></thead>
+                        <tbody>
+                          <template v-for="t in driverTrucks[d.id]" :key="t.id">
+                            <tr>
+                              <td>{{ t.licensePlate }}</td>
+                              <td>{{ t.description }}</td>
+                              <td>
+                                <button class="btn btn-sm btn-outline-secondary" @click="toggleDriverTruck(d.id, t.id)">Ver</button>
+                              </td>
+                            </tr>
+                            <tr v-if="expandedDriverTrucks[d.id + '_' + t.id]">
+                              <td colspan="3">
+                                <div v-if="t.truncker && t.truncker.length">
+                                  <table class="table table-sm mb-0">
+                                    <thead><tr><th>Patente cisterna</th><th>Capacidad (L)</th></tr></thead>
+                                    <tbody>
+                                      <tr v-for="(c, i) in t.truncker" :key="i">
+                                        <td>{{ c.licence_plate || c.licencePlate }}</td>
+                                        <td>{{ c.capacity }}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div v-else class="text-muted">Sin cisternas</div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="text-muted">Sin camiones asignados</div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -207,6 +260,9 @@ export default {
     const productsList = ref([])
     const truckForm = ref({ licensePlate: '', description: '', cisternLicencePlate: '', cisternCapacity: null })
     const expandedTrucks = ref({})
+    const expandedDrivers = ref({})
+    const expandedDriverTrucks = ref({})
+    const driverTrucks = ref({})
     const canCreateTruck = computed(() => !!truckForm.value.licensePlate && !!truckForm.value.cisternLicencePlate && truckForm.value.cisternCapacity > 0)
     const driverForm = ref({ dni: null, name: '', lastName: '' })
     const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
@@ -263,6 +319,24 @@ export default {
       }
     }
     const toggleTruck = (id) => { expandedTrucks.value[id] = !expandedTrucks.value[id] }
+    
+    const toggleDriver = async (id) => {
+      expandedDrivers.value[id] = !expandedDrivers.value[id]
+      if (expandedDrivers.value[id] && !driverTrucks.value[id]) {
+        try {
+          const r = await api.get(`/drivers/${id}/trucks`)
+          driverTrucks.value[id] = r.data
+        } catch (e) {
+          alert(e.response?.data?.message || 'Error al cargar camiones del conductor')
+          driverTrucks.value[id] = []
+        }
+      }
+    }
+    
+    const toggleDriverTruck = (driverId, truckId) => {
+      const key = driverId + '_' + truckId
+      expandedDriverTrucks.value[key] = !expandedDriverTrucks.value[key]
+    }
 
     const createTruck = async () => {
       try {
@@ -312,7 +386,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck }
   }
 }
 </script>

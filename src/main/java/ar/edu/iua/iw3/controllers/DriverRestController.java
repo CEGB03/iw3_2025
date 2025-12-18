@@ -6,21 +6,29 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import ar.edu.iua.iw3.model.Driver;
+import ar.edu.iua.iw3.model.Order;
+import ar.edu.iua.iw3.model.Truck;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
+import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
 import ar.edu.iua.iw3.model.business.interfaces.IDriverBusiness;
+import ar.edu.iua.iw3.model.persistence.OrderRepository;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(Constants.URL_DRIVERS)
@@ -29,6 +37,9 @@ public class DriverRestController {
 
     @Autowired
     private IDriverBusiness driverBusiness;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     @Autowired
     private IStandartResponseBusiness response;
@@ -63,6 +74,31 @@ public class DriverRestController {
         try {
             java.util.List<Driver> drivers = driverBusiness.list();
             return new ResponseEntity<>(drivers, HttpStatus.OK);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Operation(summary = "Obtener camiones de un conductor", description = "Lista los camiones asociados a un conductor (via órdenes)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Listado obtenido"),
+        @ApiResponse(responseCode = "404", description = "Conductor no encontrado"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @GetMapping(value = "/{id}/trucks", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getTrucks(@PathVariable String id) {
+        try {
+            Driver driver = driverBusiness.load(id);
+            List<Order> orders = orderRepository.findByDriver(driver);
+            List<Truck> trucks = orders.stream()
+                .map(Order::getTruck)
+                .filter(t -> t != null)
+                .distinct()
+                .collect(Collectors.toList());
+            return new ResponseEntity<>(trucks, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(response.build(HttpStatus.NOT_FOUND, e, e.getMessage()), HttpStatus.NOT_FOUND);
         } catch (BusinessException e) {
             return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
