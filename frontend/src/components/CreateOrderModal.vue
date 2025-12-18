@@ -138,17 +138,14 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, toRef } from 'vue'
 import api from '../services/api'
 
 export default {
-  props: {
-    show: Boolean
-  },
+  props: { show: Boolean },
   emits: ['close', 'created'],
   setup(props, { emit }) {
-    // Hacer reactivo el prop `show` para el template
-    const show = computed(() => props.show)
+    const show = toRef(props, 'show') // reactividad del prop
     const loading = ref(false)
     const errorMessage = ref('')
     const passwordGenerated = ref(false)

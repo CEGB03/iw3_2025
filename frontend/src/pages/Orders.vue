@@ -10,10 +10,9 @@
 
     <div class="mb-3">
       <button class="btn btn-primary" @click="refresh">Refrescar</button>
-      <button class="btn btn-danger ms-2" @click="openCreateModal">🔴 Crear Orden</button>
+      <button class="btn btn-danger ms-2" @click="openCreateModal">🔴 :V Crear Orden</button>
+      <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
     </div>
-
-    <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
 
     <table class="table table-striped">
       <thead>
