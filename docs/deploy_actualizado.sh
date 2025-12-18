@@ -65,6 +65,19 @@ else
     echo "⚠️  Archivo seed_base.sql no encontrado en /tmp/iw3_2025/docs/db/"
 fi
 
+# Copia el front en donde corresponda
+echo "7. Copiando frontend estático..."
+mkdir -p /home/user/infra_iw32025/frontend
+cp -r /tmp/iw3_2025/docs/frontend_dist/* /home/user/infra_iw32025/frontend/
+# Reinicia nginx para tomar los cambios
+docker compose -f /home/user/infra_iw32025/docker-compose.yml restart nginx
+echo "✅ Frontend copiado y Nginx reiniciado"
+
+
+# Limpieza
+#echo "8. Limpiando archivos temporales..."
+#rm -rf /tmp/iw3_2025
+
 echo ""
 echo "=== Proceso completado exitosamente! ==="
 echo "📌 Backend: https://iwiii25.dev"
