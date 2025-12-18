@@ -281,12 +281,30 @@ public class OrderBusiness implements IOrderBusiness {
                 } catch (Exception ex) {
                     log.warn("No se pudo registrar log de estado al cerrar por preset para orden {}: {}", id, ex.getMessage());
                 }
+                
+                // Disparar alarma de temperatura (no bloqueante)
                 try {
                     temperatureAlarmBusiness.handle(saved, detail.getTemperature());
                 } catch (Exception alarmEx) {
                     log.warn("No se pudo procesar alarma de temperatura para orden {}: {}", id, alarmEx.getMessage());
                 }
-                return saved;
+                
+                // Intentar finalizar automáticamente calculando pesaje final (tara + última masa)
+                try {
+                    Double initial = saved.getInitialWeighing();
+                    Double loaded = saved.getLastMassAccumulated() == null ? 0d : saved.getLastMassAccumulated();
+                    if (initial != null && loaded != null && (initial + loaded) > initial) {
+                        finalizeWeighing(id, initial + loaded);
+                    }
+                } catch (Exception ex) {
+                    log.warn("Final weighing automático falló para orden {}: {}", id, ex.getMessage());
+                }
+                // devolver la orden (posiblemente en estado 4 si finalizeWeighing tuvo éxito)
+                try {
+                    return load(id);
+                } catch (Exception e) {
+                    return saved;
+                }
             }
 
             Order saved = orderDAO.save(order);
@@ -321,6 +339,19 @@ public class OrderBusiness implements IOrderBusiness {
             } catch (Exception ex) {
                 log.warn("Could not save state log: " + ex.getMessage());
             }
+            // Final weighing automático: tara + última masa acumulada
+            try {
+                Double initial = saved.getInitialWeighing();
+                Double loaded = saved.getLastMassAccumulated() == null ? 0d : saved.getLastMassAccumulated();
+                if (initial != null && loaded != null && (initial + loaded) > initial) {
+                    finalizeWeighing(id, initial + loaded);
+                    // devolver la orden ya finalizada (estado 4)
+                    return load(id);
+                }
+            } catch (Exception autoEx) {
+                log.warn("Final weighing automático falló al cerrar orden {}: {}", id, autoEx.getMessage());
+            }
+            // si no se pudo finalizar automáticamente, se devuelve la orden en estado 3
             return saved;
         } catch (BusinessException e) {
             throw e;

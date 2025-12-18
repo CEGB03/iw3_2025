@@ -115,7 +115,7 @@
         </div>
 
         <div class="alert alert-secondary small">
-          Validaciones: flow ≥ 0, 0 < density < 1, mass_accumulated ≥ 0 y ≥ última masa (actual: {{ order?.lastMassAccumulated || 0 }}).
+          Validaciones: flow ≥ 0, 0 < density < 1, mass_accumulated ≥ 0, ≥ última masa (actual: {{ order?.lastMassAccumulated || 0 }}) y ≤ preset ({{ order?.preset }}).
         </div>
 
         <div class="mb-3">
@@ -342,9 +342,10 @@ export default {
       if (!csvRows.value.length) return
       let sent = 0, skipped = 0
       let last = Number(order.value?.lastMassAccumulated || 0)
+      const preset = Number(order.value?.preset || Infinity)
       for (const r of csvRows.value) {
         // Validaciones locales
-        const valid = r && typeof r.mass_accumulated === 'number' && !isNaN(r.mass_accumulated) && r.mass_accumulated >= 0 && r.mass_accumulated >= last && r.density > 0 && r.density < 1 && r.flow >= 0
+        const valid = r && typeof r.mass_accumulated === 'number' && !isNaN(r.mass_accumulated) && r.mass_accumulated >= 0 && r.mass_accumulated >= last && r.mass_accumulated <= preset && r.density > 0 && r.density < 1 && r.flow >= 0
         if (!valid) { skipped++; continue }
         try {
           const payload = { ...r, time_stamp: new Date().toISOString() }
