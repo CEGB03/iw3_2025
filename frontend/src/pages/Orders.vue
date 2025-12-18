@@ -62,22 +62,21 @@
           <h6>🚚 Camiones</h6>
           <table class="table table-sm align-middle">
             <thead>
-              <tr><th style="width: 40px;"></th><th>Patente</th><th>Descripción</th></tr>
+              <tr><th>Patente</th><th>Descripción</th><th>Cisterna</th></tr>
             </thead>
             <tbody>
               <template v-for="t in trucksList" :key="t.id">
                 <tr>
-                  <td>
-                    <button class="btn btn-sm btn-outline-secondary" @click="toggleTruck(t.id)" :aria-expanded="!!expandedTrucks[t.id]">
-                      {{ expandedTrucks[t.id] ? '▼' : '▶' }}
-                    </button>
-                  </td>
                   <td>{{ t.licensePlate }}</td>
                   <td>{{ t.description }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" @click="toggleTruck(t.id)" :aria-expanded="!!expandedTrucks[t.id]">
+                      Ver
+                    </button>
+                  </td>
                 </tr>
                 <tr v-if="expandedTrucks[t.id]">
-                  <td></td>
-                  <td colspan="2">
+                  <td colspan="3">
                     <div v-if="t.truncker && t.truncker.length">
                       <table class="table table-sm mb-0">
                         <thead><tr><th>Patente cisterna</th><th>Capacidad (L)</th></tr></thead>
