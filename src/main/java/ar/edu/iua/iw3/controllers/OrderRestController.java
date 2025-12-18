@@ -3,6 +3,8 @@ package ar.edu.iua.iw3.controllers;
 import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +17,7 @@ import ar.edu.iua.iw3.model.Order;
 import ar.edu.iua.iw3.model.OrderDetail;
 import ar.edu.iua.iw3.controllers.dto.OrderRequestDTO;
 import ar.edu.iua.iw3.controllers.dto.OrderResponseDTO;
+import ar.edu.iua.iw3.controllers.dto.PaginatedResponse;
 import ar.edu.iua.iw3.controllers.dto.TruckDTO;
 import ar.edu.iua.iw3.controllers.mappers.OrderMapper;
 import ar.edu.iua.iw3.model.business.interfaces.ITruckBusiness;
@@ -74,17 +77,82 @@ public class OrderRestController {
     })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> list() {
+    public ResponseEntity<?> listPaginated(
+            @Parameter(description = "Número de página (comenzando en 0)") 
+            org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Cantidad de registros por página") 
+            org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
         try {
-			java.util.List<Order> orders = orderBusiness.list();
-			java.util.List<OrderResponseDTO> dtos = orders.stream().map(o -> orderMapper.toDto(o)).toList();
-			return new ResponseEntity<>(dtos, HttpStatus.OK);
+            Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+            Page<Order> ordersPage = orderBusiness.listPaginated(pageable);
+            
+            java.util.List<OrderResponseDTO> dtos = ordersPage.getContent().stream()
+                    .map(o -> orderMapper.toDto(o)).toList();
+            
+            PaginatedResponse<OrderResponseDTO> response = new PaginatedResponse<>(
+                    dtos,
+                    ordersPage.getTotalPages(),
+                    ordersPage.getTotalElements(),
+                    page,
+                    size,
+                    ordersPage.isFirst(),
+                    ordersPage.isLast(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (BusinessException e) {
-            return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-	// Punto 1 -- Estado 1
+    @Operation(
+        summary = "Obtener mis órdenes (VIEWER/OPERADOR)",
+        description = "Retorna la lista paginada de órdenes del usuario actual. Accesible solo para VIEWER y OPERADOR."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de órdenes obtenida exitosamente"),
+        @ApiResponse(responseCode = "401", description = "No autenticado"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @GetMapping(value = "/my-orders", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('VIEWER') or hasRole('OPERADOR')")
+    public ResponseEntity<?> getMyOrders(
+            @Parameter(description = "Número de página (comenzando en 0)") 
+            org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Cantidad de registros por página") 
+            org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return new ResponseEntity<>(this.response.build(HttpStatus.UNAUTHORIZED, null, "No autenticado"), HttpStatus.UNAUTHORIZED);
+            }
+            String username = String.valueOf(auth.getPrincipal());
+            
+            Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+            Page<Order> ordersPage = orderBusiness.listPaginatedByUsername(username, pageable);
+            
+            java.util.List<OrderResponseDTO> dtos = ordersPage.getContent().stream()
+                    .map(o -> orderMapper.toDto(o)).toList();
+            
+            PaginatedResponse<OrderResponseDTO> response = new PaginatedResponse<>(
+                    dtos,
+                    ordersPage.getTotalPages(),
+                    ordersPage.getTotalElements(),
+                    page,
+                    size,
+                    ordersPage.isFirst(),
+                    ordersPage.isLast(),
+                    ordersPage.hasNext(),
+                    ordersPage.hasPrevious()
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 	@Operation(
         summary = "Crear una nueva orden",
         description = "Crea una orden en estado 1 (pendiente de pesaje inicial). Registra la hora de recepción automáticamente."

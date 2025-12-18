@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.model.Customer;
@@ -26,6 +28,16 @@ public class CustomerBusiness implements ICustomerBusiness {
     public List<Customer> list() throws BusinessException {
         try {
             return customerDAO.findAll();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw BusinessException.builder().ex(e).build();
+        }
+    }
+
+    @Override
+    public Page<Customer> listPaginated(Pageable pageable) throws BusinessException {
+        try {
+            return customerDAO.findAll(pageable);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).build();

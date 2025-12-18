@@ -2,6 +2,9 @@ package ar.edu.iua.iw3.model.business.interfaces;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import ar.edu.iua.iw3.model.Truck;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
@@ -10,6 +13,8 @@ import ar.edu.iua.iw3.model.business.exceptions.NotFoundException;
 public interface ITruckBusiness {
     
     public List<Truck> list() throws BusinessException;
+
+    public Page<Truck> listPaginated(Pageable pageable) throws BusinessException;
 
     public Truck load(String id) throws NotFoundException, BusinessException;
 

@@ -1,10 +1,16 @@
 package ar.edu.iua.iw3.model.business.implementations;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import ar.edu.iua.iw3.controllers.dto.UserListResponseDTO;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.interfaces.IAuthBusiness;
@@ -215,6 +221,52 @@ public String authenticate(String username, String password) throws Unauthorized
             throw BusinessException.builder()
                     .ex(e)
                     .message("Error al crear el usuario")
+                    .build();
+        }
+    }
+
+    @Override
+    public List<UserListResponseDTO> getAllUsers() throws BusinessException {
+        try {
+            return userRepo.findAll().stream()
+                    .map(user -> new UserListResponseDTO(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getRole().toString(),
+                            user.isEnabled(),
+                            user.getCreatedAt(),
+                            user.getUpdatedAt()
+                    ))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error al obtener lista de usuarios: {}", e.getMessage(), e);
+            throw BusinessException.builder()
+                    .ex(e)
+                    .message("Error al obtener la lista de usuarios")
+                    .build();
+        }
+    }
+
+    @Override
+    public Page<UserListResponseDTO> getAllUsersPaginated(Pageable pageable) throws BusinessException {
+        try {
+            Page<UserAccount> usersPage = userRepo.findAll(pageable);
+            List<UserListResponseDTO> dtos = usersPage.getContent().stream()
+                    .map(user -> new UserListResponseDTO(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getRole().toString(),
+                            user.isEnabled(),
+                            user.getCreatedAt(),
+                            user.getUpdatedAt()
+                    ))
+                    .collect(Collectors.toList());
+            return new PageImpl<>(dtos, pageable, usersPage.getTotalElements());
+        } catch (Exception e) {
+            log.error("Error al obtener lista paginada de usuarios: {}", e.getMessage(), e);
+            throw BusinessException.builder()
+                    .ex(e)
+                    .message("Error al obtener la lista de usuarios")
                     .build();
         }
     }

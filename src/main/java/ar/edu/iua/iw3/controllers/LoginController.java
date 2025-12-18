@@ -15,10 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
 import ar.edu.iua.iw3.controllers.dto.LoginRequestDTO;
 import ar.edu.iua.iw3.controllers.dto.LoginResponseDTO;
 import ar.edu.iua.iw3.controllers.dto.SignupRequestDTO;
+import ar.edu.iua.iw3.controllers.dto.UserListResponseDTO;
+import ar.edu.iua.iw3.controllers.dto.PaginatedResponse;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.interfaces.IAuthBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -343,6 +349,109 @@ public class LoginController {
             log.error("Error inesperado al crear usuario: {}", e.getMessage(), e);
             return new ResponseEntity<>(
                 response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error interno en el servidor"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    @Operation(
+        summary = "Listar todos los usuarios (solo ADMIN)",
+        description = "Obtiene la lista completa de todos los usuarios del sistema. Solo administradores pueden acceder a este endpoint."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Lista de usuarios obtenida exitosamente",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                [
+                  {
+                    "id": "uuid-1",
+                    "username": "admin",
+                    "role": "ADMIN",
+                    "enabled": true,
+                    "createdAt": "2025-12-18T10:00:00",
+                    "updatedAt": "2025-12-18T10:00:00"
+                  },
+                  {
+                    "id": "uuid-2",
+                    "username": "operador",
+                    "role": "OPERADOR",
+                    "enabled": true,
+                    "createdAt": "2025-12-18T11:00:00",
+                    "updatedAt": "2025-12-18T11:00:00"
+                  }
+                ]
+                """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Acceso denegado - solo ADMIN puede listar usuarios",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "code": 403,
+                  "message": "Acceso denegado"
+                }
+                """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Error interno del servidor",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "code": 500,
+                  "message": "Error al obtener la lista de usuarios"
+                }
+                """)
+            )
+        )
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(
+        value = "/users",
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> getAllUsersPaginated(
+            @Parameter(description = "Número de página (comenzando en 0)") 
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Cantidad de registros por página") 
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<UserListResponseDTO> usersPage = authBusiness.getAllUsersPaginated(pageable);
+            
+            PaginatedResponse<UserListResponseDTO> response = new PaginatedResponse<>(
+                    usersPage.getContent(),
+                    usersPage.getTotalPages(),
+                    usersPage.getTotalElements(),
+                    page,
+                    size,
+                    usersPage.isFirst(),
+                    usersPage.isLast(),
+                    usersPage.hasNext(),
+                    usersPage.hasPrevious()
+            );
+            
+            log.info("Lista paginada de usuarios obtenida - Total: {}", usersPage.getTotalElements());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        } catch (BusinessException e) {
+            log.error("Error al obtener usuarios: {}", e.getMessage());
+            return new ResponseEntity<>(
+                this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        } catch (Exception e) {
+            log.error("Error inesperado al obtener usuarios: {}", e.getMessage(), e);
+            return new ResponseEntity<>(
+                this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error interno en el servidor"),
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }

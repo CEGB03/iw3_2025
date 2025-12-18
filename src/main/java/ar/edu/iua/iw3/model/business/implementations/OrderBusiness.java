@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.model.Order;
@@ -69,6 +71,28 @@ public class OrderBusiness implements IOrderBusiness {
     public List<Order> list() throws BusinessException{
         try {
             return orderDAO.findAll();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw BusinessException.builder().ex(e).message(e.getMessage()).build();
+        }
+    }
+
+    @Override
+    public Page<Order> listPaginated(Pageable pageable) throws BusinessException {
+        try {
+            return orderDAO.findAll(pageable);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw BusinessException.builder().ex(e).message(e.getMessage()).build();
+        }
+    }
+
+    @Override
+    public Page<Order> listPaginatedByUsername(String username, Pageable pageable) throws BusinessException {
+        try {
+            // Por ahora, retorna todas las órdenes igual que para OPERADOR
+            // En el futuro, esto puede filtrar órdenes por usuario/driver
+            return orderDAO.findAll(pageable);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).message(e.getMessage()).build();

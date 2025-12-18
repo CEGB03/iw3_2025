@@ -1,6 +1,9 @@
 package ar.edu.iua.iw3.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -8,16 +11,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import ar.edu.iua.iw3.model.Customer;
+import ar.edu.iua.iw3.controllers.dto.PaginatedResponse;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
 import ar.edu.iua.iw3.model.business.interfaces.ICustomerBusiness;
 import ar.edu.iua.iw3.util.IStandartResponseBusiness;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,19 +58,37 @@ public class CustomerRestController {
         }
     }
 
-    @Operation(summary = "Listar clientes", description = "Obtiene el listado de todos los clientes")
+    @Operation(summary = "Listar clientes", description = "Obtiene el listado paginado de todos los clientes")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Listado obtenido"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> list() {
+    public ResponseEntity<?> list(
+            @Parameter(description = "Número de página (comenzando en 0)") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Cantidad de registros por página") 
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            java.util.List<Customer> customers = customerBusiness.list();
-            return new ResponseEntity<>(customers, HttpStatus.OK);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Customer> customersPage = customerBusiness.listPaginated(pageable);
+            
+            PaginatedResponse<Customer> response = new PaginatedResponse<>(
+                    customersPage.getContent(),
+                    customersPage.getTotalPages(),
+                    customersPage.getTotalElements(),
+                    page,
+                    size,
+                    customersPage.isFirst(),
+                    customersPage.isLast(),
+                    customersPage.hasNext(),
+                    customersPage.hasPrevious()
+            );
+            
+            return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (BusinessException e) {
-            return new ResponseEntity<>(response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -2,6 +2,9 @@ package ar.edu.iua.iw3.model.business.interfaces;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import ar.edu.iua.iw3.model.Order;
 import ar.edu.iua.iw3.model.OrderDetail;
 import ar.edu.iua.iw3.model.Reconciliation;
@@ -13,6 +16,10 @@ import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 public interface IOrderBusiness {
 
     public List<Order> list() throws BusinessException;
+
+    public Page<Order> listPaginated(Pageable pageable) throws BusinessException;
+
+    public Page<Order> listPaginatedByUsername(String username, Pageable pageable) throws BusinessException;
 
     public Order load(int id) throws NotFoundException, BusinessException;
 

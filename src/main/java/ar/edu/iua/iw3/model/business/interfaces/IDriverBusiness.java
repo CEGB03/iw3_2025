@@ -1,5 +1,8 @@
 package ar.edu.iua.iw3.model.business.interfaces;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import ar.edu.iua.iw3.model.Driver;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.FoundException;
@@ -9,6 +12,8 @@ import java.util.List;
 
 public interface IDriverBusiness {
     public List<Driver> list() throws BusinessException;
+
+    public Page<Driver> listPaginated(Pageable pageable) throws BusinessException;
 
     public Driver load(String id) throws NotFoundException, BusinessException;
 

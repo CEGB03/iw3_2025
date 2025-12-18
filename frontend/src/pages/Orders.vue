@@ -12,6 +12,10 @@
       <button class="btn btn-primary" @click="refresh">Refrescar</button>
       <button v-if="role === 'ADMIN'" class="btn btn-success ms-2" @click="openCreateModal">➕ Crear Orden</button>
       <button v-if="role === 'ADMIN'" class="btn btn-success ms-2" @click="openCreateUserModal">👤 Crear Usuario</button>
+      <button v-if="role === 'OPERADOR'" class="btn btn-outline-info ms-2" @click="loadList('orders')">📄 Mis Órdenes</button>
+      <button v-if="role === 'OPERADOR'" class="btn btn-outline-info ms-2" @click="loadList('truck')">🚚 Camiones</button>
+      <button v-if="role === 'OPERADOR'" class="btn btn-outline-info ms-2" @click="loadList('driver')">👷 Conductores</button>
+      <button v-if="role === 'OPERADOR'" class="btn btn-outline-info ms-2" @click="loadList('customer')">🧑‍💼 Clientes</button>
       <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
     </div>
 
@@ -29,8 +33,15 @@
         <button class="btn btn-outline-primary" @click="loadList('driver')">👷📋 Listar Conductores</button>
         <button class="btn btn-outline-primary" @click="loadList('customer')">🧑‍💼📋 Listar Clientes</button>
         <button class="btn btn-outline-primary" @click="loadList('product')">🛢️📋 Listar Productos</button>
+        <button class="btn btn-outline-primary" @click="loadList('users')">👥📋 Listar Usuarios</button>
       </div>
     </div>
+    <!-- Mensaje de bienvenida VIEWER -->
+    <div v-if="role === 'VIEWER'" class="alert alert-info">
+      <strong>Bienvenido, {{ user }}</strong><br>
+      Aquí puedes ver tus órdenes y tu información personal.
+    </div>
+
     <!-- Listado dinámico ADMIN -->
     <div v-if="role === 'ADMIN'">
       <table v-if="listSection === 'orders'" class="table table-striped">
@@ -57,6 +68,20 @@
           </tr>
         </tbody>
       </table>
+      <!-- Paginación órdenes -->
+      <nav v-if="listSection === 'orders' && pagination.orders.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.orders.page === 0 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page - 1)" :disabled="pagination.orders.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.orders.page + 1 }} de {{ pagination.orders.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.orders.page >= pagination.orders.totalPages - 1 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page + 1)" :disabled="pagination.orders.page >= pagination.orders.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
 
       <div v-if="listSection === 'truck'" class="card mb-3">
         <div class="card-body">
@@ -97,6 +122,20 @@
           </table>
         </div>
       </div>
+
+      <nav v-if="listSection === 'truck' && pagination.trucks.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.trucks.page === 0 }">
+            <button class="page-link" @click="changePage('truck', pagination.trucks.page - 1)" :disabled="pagination.trucks.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.trucks.page + 1 }} de {{ pagination.trucks.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.trucks.page >= pagination.trucks.totalPages - 1 }">
+            <button class="page-link" @click="changePage('truck', pagination.trucks.page + 1)" :disabled="pagination.trucks.page >= pagination.trucks.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
 
       <div v-if="listSection === 'driver'" class="card mb-3">
         <div class="card-body">
@@ -160,6 +199,20 @@
         </div>
       </div>
 
+      <nav v-if="listSection === 'driver' && pagination.drivers.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.drivers.page === 0 }">
+            <button class="page-link" @click="changePage('driver', pagination.drivers.page - 1)" :disabled="pagination.drivers.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.drivers.page + 1 }} de {{ pagination.drivers.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.drivers.page >= pagination.drivers.totalPages - 1 }">
+            <button class="page-link" @click="changePage('driver', pagination.drivers.page + 1)" :disabled="pagination.drivers.page >= pagination.drivers.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
       <div v-if="listSection === 'customer'" class="card mb-3">
         <div class="card-body">
           <h6>🧑‍💼 Clientes</h6>
@@ -169,6 +222,20 @@
         </div>
       </div>
 
+      <nav v-if="listSection === 'customer' && pagination.customers.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.customers.page === 0 }">
+            <button class="page-link" @click="changePage('customer', pagination.customers.page - 1)" :disabled="pagination.customers.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.customers.page + 1 }} de {{ pagination.customers.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.customers.page >= pagination.customers.totalPages - 1 }">
+            <button class="page-link" @click="changePage('customer', pagination.customers.page + 1)" :disabled="pagination.customers.page >= pagination.customers.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
       <div v-if="listSection === 'product'" class="card mb-3">
         <div class="card-body">
           <h6>🛢️ Productos</h6>
@@ -177,6 +244,311 @@
           </tbody></table>
         </div>
       </div>
+
+      <nav v-if="listSection === 'product' && pagination.products.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.products.page === 0 }">
+            <button class="page-link" @click="changePage('product', pagination.products.page - 1)" :disabled="pagination.products.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.products.page + 1 }} de {{ pagination.products.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.products.page >= pagination.products.totalPages - 1 }">
+            <button class="page-link" @click="changePage('product', pagination.products.page + 1)" :disabled="pagination.products.page >= pagination.products.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
+      <div v-if="listSection === 'users'" class="card mb-3">
+        <div class="card-body">
+          <h6>👥 Usuarios</h6>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Creado</th>
+                <th>Actualizado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="u in usersList" :key="u.id">
+                <td>{{ u.id.substring(0, 8) }}...</td>
+                <td>{{ u.username }}</td>
+                <td><span :class="`badge bg-${u.role === 'ADMIN' ? 'danger' : u.role === 'OPERADOR' ? 'primary' : 'info'}`">{{ u.role }}</span></td>
+                <td><span :class="`badge bg-${u.enabled ? 'success' : 'secondary'}`">{{ u.enabled ? 'Activo' : 'Inactivo' }}</span></td>
+                <td>{{ new Date(u.createdAt).toLocaleDateString('es-AR') }}</td>
+                <td>{{ new Date(u.updatedAt).toLocaleDateString('es-AR') }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="usersList.length === 0" class="text-muted">No hay usuarios</p>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'users' && pagination.users.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.users.page === 0 }">
+            <button class="page-link" @click="changePage('users', pagination.users.page - 1)" :disabled="pagination.users.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.users.page + 1 }} de {{ pagination.users.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.users.page >= pagination.users.totalPages - 1 }">
+            <button class="page-link" @click="changePage('users', pagination.users.page + 1)" :disabled="pagination.users.page >= pagination.users.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Listado dinámico OPERADOR -->
+    <div v-if="role === 'OPERADOR'">
+      <div v-if="listSection === 'orders'" class="card mb-3">
+        <div class="card-body">
+          <h6>📄 Órdenes</h6>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nº Orden</th>
+                <th>Estado</th>
+                <th>Camión</th>
+                <th>Preset</th>
+                <th>Última masa</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in orders" :key="o.id">
+                <td>{{ o.id }}</td>
+                <td>{{ o.externalCode }}</td>
+                <td>{{ o.state }}</td>
+                <td>{{ o.truck?.licensePlate }}</td>
+                <td>{{ o.preset }}</td>
+                <td>{{ o.lastMassAccumulated }}</td>
+                <td><router-link :to="`/orders/${o.id}`" class="btn btn-sm btn-primary">Ver</router-link></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'orders' && pagination.orders.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.orders.page === 0 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page - 1)" :disabled="pagination.orders.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.orders.page + 1 }} de {{ pagination.orders.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.orders.page >= pagination.orders.totalPages - 1 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page + 1)" :disabled="pagination.orders.page >= pagination.orders.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
+      <div v-if="listSection === 'truck'" class="card mb-3">
+        <div class="card-body">
+          <h6>🚚 Camiones</h6>
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>Patente</th><th>Descripción</th><th>Cisterna</th></tr>
+            </thead>
+            <tbody>
+              <template v-for="t in trucksList" :key="t.id">
+                <tr>
+                  <td>{{ t.licensePlate }}</td>
+                  <td>{{ t.description }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" @click="toggleTruck(t.id)" :aria-expanded="!!expandedTrucks[t.id]">
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="expandedTrucks[t.id]">
+                  <td colspan="3">
+                    <div v-if="t.truncker && t.truncker.length">
+                      <table class="table table-sm mb-0">
+                        <thead><tr><th>Patente cisterna</th><th>Capacidad (L)</th></tr></thead>
+                        <tbody>
+                          <tr v-for="(c, i) in t.truncker" :key="i">
+                            <td>{{ c.licence_plate || c.licencePlate }}</td>
+                            <td>{{ c.capacity }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="text-muted">Sin cisternas</div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'truck' && pagination.trucks.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.trucks.page === 0 }">
+            <button class="page-link" @click="changePage('truck', pagination.trucks.page - 1)" :disabled="pagination.trucks.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.trucks.page + 1 }} de {{ pagination.trucks.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.trucks.page >= pagination.trucks.totalPages - 1 }">
+            <button class="page-link" @click="changePage('truck', pagination.trucks.page + 1)" :disabled="pagination.trucks.page >= pagination.trucks.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
+      <div v-if="listSection === 'driver'" class="card mb-3">
+        <div class="card-body">
+          <h6>👷 Conductores</h6>
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>DNI</th><th>Nombre</th><th>Apellido</th><th>Camiones</th></tr>
+            </thead>
+            <tbody>
+              <template v-for="d in driversList" :key="d.id">
+                <tr>
+                  <td>{{ d.dni }}</td>
+                  <td>{{ d.name }}</td>
+                  <td>{{ d.lastName }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary" @click="toggleDriver(d.id)" :aria-expanded="!!expandedDrivers[d.id]">
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="expandedDrivers[d.id]">
+                  <td colspan="4">
+                    <div v-if="driverTrucks[d.id] && driverTrucks[d.id].length">
+                      <table class="table table-sm mb-0">
+                        <thead><tr><th>Patente camión</th><th>Descripción</th><th>Cisterna</th></tr></thead>
+                        <tbody>
+                          <template v-for="t in driverTrucks[d.id]" :key="t.id">
+                            <tr>
+                              <td>{{ t.licensePlate }}</td>
+                              <td>{{ t.description }}</td>
+                              <td>
+                                <button class="btn btn-sm btn-outline-secondary" @click="toggleDriverTruck(d.id, t.id)">Ver</button>
+                              </td>
+                            </tr>
+                            <tr v-if="expandedDriverTrucks[d.id + '_' + t.id]">
+                              <td colspan="3">
+                                <div v-if="t.truncker && t.truncker.length">
+                                  <table class="table table-sm mb-0">
+                                    <thead><tr><th>Patente cisterna</th><th>Capacidad (L)</th></tr></thead>
+                                    <tbody>
+                                      <tr v-for="(c, i) in t.truncker" :key="i">
+                                        <td>{{ c.licence_plate || c.licencePlate }}</td>
+                                        <td>{{ c.capacity }}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div v-else class="text-muted">Sin cisternas</div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="text-muted">Sin camiones asignados</div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'driver' && pagination.drivers.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.drivers.page === 0 }">
+            <button class="page-link" @click="changePage('driver', pagination.drivers.page - 1)" :disabled="pagination.drivers.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.drivers.page + 1 }} de {{ pagination.drivers.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.drivers.page >= pagination.drivers.totalPages - 1 }">
+            <button class="page-link" @click="changePage('driver', pagination.drivers.page + 1)" :disabled="pagination.drivers.page >= pagination.drivers.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+
+      <div v-if="listSection === 'customer'" class="card mb-3">
+        <div class="card-body">
+          <h6>🧑‍💼 Clientes</h6>
+          <table class="table table-sm"><thead><tr><th>CUIT/CUIL</th><th>Teléfono</th><th>Mail</th></tr></thead><tbody>
+            <tr v-for="c in customersList" :key="c.id"><td>{{ c.socialNumber }}</td><td>{{ c.phoneNumber }}</td><td>{{ c.mail }}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'customer' && pagination.customers.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.customers.page === 0 }">
+            <button class="page-link" @click="changePage('customer', pagination.customers.page - 1)" :disabled="pagination.customers.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.customers.page + 1 }} de {{ pagination.customers.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.customers.page >= pagination.customers.totalPages - 1 }">
+            <button class="page-link" @click="changePage('customer', pagination.customers.page + 1)" :disabled="pagination.customers.page >= pagination.customers.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <!-- Listado dinámico VIEWER -->
+    <div v-if="role === 'VIEWER'">
+      <div v-if="listSection === 'orders'" class="card mb-3">
+        <div class="card-body">
+          <h6>📄 Mis Órdenes</h6>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nº Orden</th>
+                <th>Estado</th>
+                <th>Camión</th>
+                <th>Preset</th>
+                <th>Última masa</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="o in orders" :key="o.id">
+                <td>{{ o.id }}</td>
+                <td>{{ o.externalCode }}</td>
+                <td>{{ o.state }}</td>
+                <td>{{ o.truck?.licensePlate }}</td>
+                <td>{{ o.preset }}</td>
+                <td>{{ o.lastMassAccumulated }}</td>
+                <td><router-link :to="`/orders/${o.id}`" class="btn btn-sm btn-primary">Ver</router-link></td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-if="orders.length === 0" class="text-muted">No tienes órdenes</p>
+        </div>
+      </div>
+
+      <nav v-if="listSection === 'orders' && pagination.orders.totalPages > 1" aria-label="Page navigation">
+        <ul class="pagination justify-content-center mt-3">
+          <li class="page-item" :class="{ disabled: pagination.orders.page === 0 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page - 1)" :disabled="pagination.orders.page === 0">Anterior</button>
+          </li>
+          <li class="page-item active">
+            <span class="page-link">Página {{ pagination.orders.page + 1 }} de {{ pagination.orders.totalPages }}</span>
+          </li>
+          <li class="page-item" :class="{ disabled: pagination.orders.page >= pagination.orders.totalPages - 1 }">
+            <button class="page-link" @click="changePage('orders', pagination.orders.page + 1)" :disabled="pagination.orders.page >= pagination.orders.totalPages - 1">Siguiente</button>
+          </li>
+        </ul>
+      </nav>
     </div>
 
     <!-- Formularios de creación ADMIN -->
@@ -266,7 +638,8 @@
           <select v-model="userForm.role" class="form-select">
             <option value="">Seleccionar rol...</option>
             <option value="ADMIN">ADMIN</option>
-            <option value="USER">USER</option>
+            <option value="OPERADOR">OPERADOR</option>
+            <option value="VISOR">VISOR</option>
           </select>
         </div>
         <div v-if="userCreateResult" :class="userCreateResult.ok ? 'alert alert-success' : 'alert alert-danger'">
@@ -305,6 +678,18 @@ export default {
     const driversList = ref([])
     const customersList = ref([])
     const productsList = ref([])
+    const usersList = ref([])
+    
+    // Paginación
+    const pagination = ref({
+      orders: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+      trucks: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+      drivers: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+      customers: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+      products: { page: 0, size: 10, totalPages: 0, totalElements: 0 },
+      users: { page: 0, size: 10, totalPages: 0, totalElements: 0 }
+    })
+    
     const truckForm = ref({ licensePlate: '', description: '', cisterns: [{ licence_plate: '', capacity: null }] })
     const expandedTrucks = ref({})
     const expandedDrivers = ref({})
@@ -331,8 +716,8 @@ export default {
         } catch (e) {
           role.value = ''
         }
-        // Si es admin, cargar órdenes por defecto
-        if (role.value === 'ADMIN') {
+        // Cargar órdenes por defecto para ADMIN, OPERADOR y VIEWER
+        if (role.value === 'ADMIN' || role.value === 'OPERADOR' || role.value === 'VIEWER') {
           listSection.value = 'orders'
           await loadList('orders')
         } else {
@@ -387,18 +772,50 @@ export default {
     const toggleCreate = (what) => {
       createSection.value = createSection.value === what ? '' : what
     }
-    const loadList = async (what) => {
+    
+    const loadList = async (what, page = 0) => {
       listSection.value = what
       try {
-        if (what === 'orders') { const r = await api.get('/orders'); orders.value = r.data }
-        if (what === 'truck') { const r = await api.get('/trucks'); trucksList.value = r.data }
-        if (what === 'driver') { const r = await api.get('/drivers'); driversList.value = r.data }
-        if (what === 'customer') { const r = await api.get('/customers'); customersList.value = r.data }
-        if (what === 'product') { const r = await api.get('/products'); productsList.value = r.data }
+        if (what === 'orders') { 
+          const endpoint = role.value === 'VIEWER' ? '/orders/my-orders' : '/orders'
+          const r = await api.get(endpoint, { params: { page, size: 10 } })
+          orders.value = r.data.content || []
+          pagination.value.orders = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
+        if (what === 'truck') { 
+          const r = await api.get('/trucks', { params: { page, size: 10 } })
+          trucksList.value = r.data.content || []
+          pagination.value.trucks = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
+        if (what === 'driver') { 
+          const r = await api.get('/drivers', { params: { page, size: 10 } })
+          driversList.value = r.data.content || []
+          pagination.value.drivers = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
+        if (what === 'customer') { 
+          const r = await api.get('/customers', { params: { page, size: 10 } })
+          customersList.value = r.data.content || []
+          pagination.value.customers = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
+        if (what === 'product') { 
+          const r = await api.get('/products', { params: { page, size: 10 } })
+          productsList.value = r.data.content || []
+          pagination.value.products = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
+        if (what === 'users') { 
+          const r = await api.get('/login/users', { params: { page, size: 10 } })
+          usersList.value = r.data.content || []
+          pagination.value.users = { page, size: 10, totalPages: r.data.totalPages, totalElements: r.data.totalElements }
+        }
       } catch (e) {
         alert(e.response?.data?.message || 'Error al listar ' + what)
       }
     }
+    
+    const changePage = (what, newPage) => {
+      loadList(what, newPage)
+    }
+    
     const toggleTruck = (id) => { expandedTrucks.value[id] = !expandedTrucks.value[id] }
     
     const toggleDriver = async (id) => {
@@ -474,7 +891,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, canCreateDriver, showCreateUserModal, openCreateUserModal, closeCreateUserModal, userForm, userCreateResult, canCreateUser, createUser }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, usersList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, canCreateDriver, showCreateUserModal, openCreateUserModal, closeCreateUserModal, userForm, userCreateResult, canCreateUser, createUser, pagination, changePage }
   }
 }
 </script>

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ar.edu.iua.iw3.model.Driver;
@@ -25,6 +27,16 @@ public class DriverBusiness implements IDriverBusiness {
     public List<Driver> list() throws BusinessException {
         try {
             return driverDAO.findAll();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw BusinessException.builder().ex(e).build();
+        }
+    }
+
+    @Override
+    public Page<Driver> listPaginated(Pageable pageable) throws BusinessException {
+        try {
+            return driverDAO.findAll(pageable);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw BusinessException.builder().ex(e).build();
