@@ -79,12 +79,6 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Fecha de Carga Prevista</label>
-            <input v-model="form.scheduledDate" type="datetime-local" class="form-control" required />
-            <small class="text-muted">Formato local (YYYY-MM-DD HH:mm)</small>
-          </div>
-
-          <div class="mb-3">
             <label class="form-label">Preset (kg)</label>
             <input v-model.number="form.preset" type="number" class="form-control" required min="1" placeholder="Ingrese preset en kg" />
           </div>
@@ -157,7 +151,6 @@ export default {
       driverCodeExt: '',
       customerCodeExt: '',
       productCodeExt: '',
-      scheduledDate: new Date().toISOString().slice(0, 16),
       preset: null,
       // selecciones
       selectedTruck: null,
@@ -205,7 +198,6 @@ export default {
       if (!customerCode) { errorMessage.value = 'Debe seleccionar o ingresar un cliente'; return false }
       const productCode = f.selectedProduct?.productName || f.productCodeExt
       if (!productCode) { errorMessage.value = 'Debe seleccionar o ingresar un producto'; return false }
-      if (!f.scheduledDate) { errorMessage.value = 'Fecha prevista es obligatoria'; return false }
       if (!f.preset || Number(f.preset) <= 0) { errorMessage.value = 'Preset debe ser positivo'; return false }
       errorMessage.value = ''
       return true
@@ -217,15 +209,29 @@ export default {
 
       try {
         if (!validateForm()) { loading.value = false; return }
-        // Mapear selecciones si existen
+        // Mapear al DTO que espera el backend (OrderRequestDTO)
         const payload = {
-          numeroOrden: form.value.orderNumber,
-          camionCodExt: form.value.selectedTruck?.licensePlate || form.value.truckCodeExt,
-          choferCodExt: form.value.selectedDriver?.dni || form.value.driverCodeExt,
-          clienteCodExt: form.value.selectedCustomer?.socialNumber || form.value.customerCodeExt,
-          productoCodExt: form.value.selectedProduct?.productName || form.value.productCodeExt,
-          fechaCargaPrevista: new Date(form.value.scheduledDate).toISOString(),
-          preset: form.value.preset
+          externalCode: form.value.orderNumber,
+          preset: form.value.preset,
+          truck: {
+            licensePlate: form.value.selectedTruck?.licensePlate || form.value.truckCodeExt,
+            description: form.value.selectedTruck?.description || undefined,
+            truncker: form.value.selectedTruck?.truncker || undefined
+          },
+          driver: {
+            dni: Number(form.value.selectedDriver?.dni || form.value.driverCodeExt) || undefined,
+            name: form.value.selectedDriver?.name || undefined,
+            lastName: form.value.selectedDriver?.lastName || undefined
+          },
+          customer: {
+            socialNumber: Number(form.value.selectedCustomer?.socialNumber || form.value.customerCodeExt) || undefined,
+            mail: form.value.selectedCustomer?.mail || undefined,
+            phoneNumber: form.value.selectedCustomer?.phoneNumber || undefined
+          },
+          product: {
+            productName: form.value.selectedProduct?.productName || form.value.productCodeExt,
+            description: form.value.selectedProduct?.description || undefined
+          }
         }
 
         const res = await api.post('/orders', payload)
@@ -258,7 +264,6 @@ export default {
         driverCodeExt: '',
         customerCodeExt: '',
         productCodeExt: '',
-        scheduledDate: new Date().toISOString().slice(0, 16),
         preset: null,
         selectedTruck: null,
         selectedDriver: null,
