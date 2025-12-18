@@ -215,16 +215,17 @@ public class OrderBusiness implements IOrderBusiness {
                     .max((d1, d2) -> d1.getTimeStamp().compareTo(d2.getTimeStamp()))
                     .orElse(null);
             
-            if (lastDetail != null && lastDetail.getMassAccumulated() != null) {
-                if (detail.getMassAccumulated() < lastDetail.getMassAccumulated()) {
-                    log.warn("Descartado detalle para orden {}: massAccumulated={} debe ser >= {}",
+                if (lastDetail != null && lastDetail.getMassAccumulated() != null) {
+                    // La masa acumulada debe crecer de forma estricta; igualar la previa indica un dato inválido
+                    if (detail.getMassAccumulated() <= lastDetail.getMassAccumulated()) {
+                        log.warn("Descartado detalle para orden {}: massAccumulated={} debe ser > {}",
                             id, detail.getMassAccumulated(), lastDetail.getMassAccumulated());
-                    throw BusinessException.builder()
-                            .message(String.format("La masa acumulada (mass_accumulated) debe ser mayor o igual a la anterior (%s)", 
-                                    lastDetail.getMassAccumulated()))
+                        throw BusinessException.builder()
+                            .message(String.format("La masa acumulada (mass_accumulated) debe ser mayor a la anterior (%s)", 
+                                lastDetail.getMassAccumulated()))
                             .build();
+                    }
                 }
-            }
         }
         
         // 4. Validar 1 > density > 0  (es decir: 0 < density < 1)

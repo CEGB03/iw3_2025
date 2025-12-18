@@ -81,9 +81,9 @@
         <table class="table">
           <thead><tr><th>Timestamp</th><th>Masa</th><th>Densidad</th><th>Temp</th><th>Caudal</th></tr></thead>
           <tbody>
-            <tr v-for="d in order.details" :key="d.timeStamp">
-              <td>{{ d.timeStamp }}</td>
-              <td>{{ d.massAccumulated }}</td>
+            <tr v-for="d in order.details" :key="d.timeStamp || d.time_stamp || Math.random()">
+              <td>{{ d.timeStamp || d.time_stamp }}</td>
+              <td>{{ d.massAccumulated ?? d.mass_accumulated }}</td>
               <td>{{ d.density }}</td>
               <td>{{ d.temperature }}</td>
               <td>{{ d.flow }}</td>
