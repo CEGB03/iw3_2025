@@ -206,59 +206,13 @@
       <!-- Crear Conductor -->
       <div v-if="createSection === 'driver'" class="card mb-3">
         <div class="card-body">
-          <h6>👷 Crear Conductor + 🚚 Camión (Obligatorio)</h6>
-          <div class="row g-2 mb-3">
-            <div class="col-md-3"><input v-model.number="driverForm.dni" type="number" class="form-control" placeholder="DNI" /></div>
-            <div class="col-md-3"><input v-model="driverForm.name" class="form-control" placeholder="Nombre" /></div>
-            <div class="col-md-3"><input v-model="driverForm.lastName" class="form-control" placeholder="Apellido" /></div>
+          <h6>👷 Crear Conductor</h6>
+          <div class="row g-2">
+            <div class="col-md-4"><input v-model.number="driverForm.dni" type="number" class="form-control" placeholder="DNI" /></div>
+            <div class="col-md-4"><input v-model="driverForm.name" class="form-control" placeholder="Nombre" /></div>
+            <div class="col-md-4"><input v-model="driverForm.lastName" class="form-control" placeholder="Apellido" /></div>
+            <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!canCreateDriver" @click="createDriver">Crear</button></div>
           </div>
-          
-          <div class="mb-3">
-            <div v-if="!driverForm.createNewTruck">
-              <label class="form-label">Selecciona un Camión:</label>
-              <div class="input-group">
-                <select v-model="driverForm.selectedTruckId" class="form-select">
-                  <option value="">-- Elige un camión --</option>
-                  <option v-for="t in trucksList" :key="t.id" :value="t.id">
-                    {{ t.licensePlate }} - {{ t.description }}
-                  </option>
-                </select>
-                <button class="btn btn-outline-secondary" @click="driverForm.createNewTruck = true">Crear nuevo</button>
-              </div>
-              <div v-if="driverForm.selectedTruckId && selectedTruckDetails" class="mt-2 p-2 bg-light border rounded">
-                <small class="text-muted">Cisternas del camión seleccionado:</small>
-                <ul class="mb-0 small">
-                  <li v-for="c in selectedTruckDetails.truncker" :key="c.id">
-                    {{ c.licence_plate || c.licencePlate }} - {{ c.capacity }}L
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div v-if="driverForm.createNewTruck" class="border p-3 rounded">
-              <h7 class="mb-3">Crear nuevo Camión con Cisternas:</h7>
-              <div class="row g-2 mb-3">
-                <div class="col-md-6"><input v-model="driverForm.newTruck.licensePlate" class="form-control form-control-sm" placeholder="Patente camión (ABC123)" /></div>
-                <div class="col-md-6"><input v-model="driverForm.newTruck.description" class="form-control form-control-sm" placeholder="Descripción" /></div>
-              </div>
-              
-              <div v-if="driverForm.newTruck.cisterns && driverForm.newTruck.cisterns.length" class="mb-3">
-                <small class="text-muted">Cisternas:</small>
-                <div v-for="(c, i) in driverForm.newTruck.cisterns" :key="i" class="row g-2 mb-2">
-                  <div class="col-md-5"><input v-model="c.licence_plate" class="form-control form-control-sm" placeholder="Patente cisterna (C1-ABC)" /></div>
-                  <div class="col-md-4"><input v-model.number="c.capacity" type="number" min="0" step="0.01" class="form-control form-control-sm" placeholder="Capacidad (L)" /></div>
-                  <div class="col-md-3 d-grid"><button class="btn btn-danger btn-sm" :disabled="driverForm.newTruck.cisterns.length === 1" @click="removeTruckCisternRow(i)">Quitar</button></div>
-                </div>
-              </div>
-
-              <div class="d-flex gap-2">
-                <button class="btn btn-info btn-sm" @click="addTruckCisternRow">+ Cisterna</button>
-                <button class="btn btn-secondary btn-sm" @click="driverForm.createNewTruck = false">Cancelar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="d-grid"><button class="btn btn-success" :disabled="!canCreateDriver" @click="createDriver">Crear</button></div>
         </div>
       </div>
 
@@ -322,22 +276,10 @@ export default {
     const driverForm = ref({
       dni: null,
       name: '',
-      lastName: '',
-      selectedTruckId: '',
-      createNewTruck: false,
-      newTruck: { licensePlate: '', description: '', cisterns: [{ licence_plate: '', capacity: null }] }
+      lastName: ''
     })
     const canCreateDriver = computed(() => {
-      const basicValid = !!driverForm.value.dni && !!driverForm.value.name && !!driverForm.value.lastName
-      if (driverForm.value.createNewTruck) {
-        return basicValid && !!driverForm.value.newTruck.licensePlate && driverForm.value.newTruck.cisterns.filter(c => !!c.licence_plate && c.capacity > 0).length > 0
-      } else {
-        return basicValid && !!driverForm.value.selectedTruckId
-      }
-    })
-    const selectedTruckDetails = computed(() => {
-      if (!driverForm.value.selectedTruckId) return null
-      return trucksList.value.find(t => t.id === driverForm.value.selectedTruckId)
+      return !!driverForm.value.dni && !!driverForm.value.name && !!driverForm.value.lastName
     })
     const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
     const productForm = ref({ productName: '', description: '' })
@@ -379,17 +321,8 @@ export default {
     }
 
     // Admin helpers
-    const toggleCreate = async (what) => {
+    const toggleCreate = (what) => {
       createSection.value = createSection.value === what ? '' : what
-      // Cargar camiones si abre formulario de conductor
-      if (createSection.value === 'driver' && trucksList.value.length === 0) {
-        try {
-          const r = await api.get('/trucks')
-          trucksList.value = r.data
-        } catch (e) {
-          console.error('Error cargando camiones:', e)
-        }
-      }
     }
     const loadList = async (what) => {
       listSection.value = what
@@ -451,35 +384,11 @@ export default {
 
     const createDriver = async () => {
       try {
-        // Si necesita crear camión nuevo
-        let truckId = driverForm.value.selectedTruckId
-        if (driverForm.value.createNewTruck) {
-          const truckRes = await api.post('/trucks', {
-            licensePlate: driverForm.value.newTruck.licensePlate,
-            description: driverForm.value.newTruck.description,
-            truncker: driverForm.value.newTruck.cisterns.filter(c => !!c.licence_plate && c.capacity > 0)
-          })
-          truckId = truckRes.data.id
-          if (listSection.value === 'truck') { await loadList('truck') }
-        }
-        
         await api.post('/drivers', { dni: Number(driverForm.value.dni), name: driverForm.value.name, lastName: driverForm.value.lastName })
         alert('Conductor creado')
-        driverForm.value = { dni: null, name: '', lastName: '', selectedTruckId: '', createNewTruck: false, newTruck: { licensePlate: '', description: '', cisterns: [{ licence_plate: '', capacity: null }] } }
+        driverForm.value = { dni: null, name: '', lastName: '' }
         if (listSection.value === 'driver') { loadList('driver') }
       } catch (e) { alert(e.response?.data?.message || 'Error creando conductor') }
-    }
-
-    const addTruckCisternRow = () => {
-      driverForm.value.newTruck.cisterns.push({ licence_plate: '', capacity: null })
-    }
-
-    const removeTruckCisternRow = (index) => {
-      if (driverForm.value.newTruck.cisterns.length > 1) {
-        driverForm.value.newTruck.cisterns.splice(index, 1)
-      } else {
-        alert('Debe tener al menos una cisterna')
-      }
     }
 
     const createCustomer = async () => {
@@ -502,7 +411,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, selectedTruckDetails, canCreateDriver, addTruckCisternRow, removeTruckCisternRow }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow, canCreateDriver }
   }
 }
 </script>
