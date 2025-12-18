@@ -186,8 +186,13 @@ export default {
         } catch (e) {
           role.value = ''
         }
-        // No cargar órdenes por defecto: sólo cuando se solicite listar
-        orders.value = []
+        // Si es admin, cargar órdenes por defecto
+        if (role.value === 'ADMIN') {
+          listSection.value = 'orders'
+          await loadList('orders')
+        } else {
+          orders.value = []
+        }
       } catch (e) {
         if (e.response && e.response.status === 401) {
           router.push('/login')
