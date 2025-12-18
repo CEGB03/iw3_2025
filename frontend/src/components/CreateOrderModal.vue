@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+  <div v-if="show" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
       <div class="modal-header">
         <h5>Crear Nueva Orden</h5>
@@ -15,33 +15,78 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Camión (Código Externo)</label>
-            <input v-model="form.truckCodeExt" type="text" class="form-control" required />
+            <label class="form-label">Camión</label>
+            <template v-if="trucks.length">
+              <select v-model="form.selectedTruck" class="form-select">
+                <option :value="null">Seleccione un camión</option>
+                <option v-for="t in trucks" :key="t.id" :value="t">
+                  {{ t.licensePlate }} - {{ t.description || 'sin descripción' }}
+                </option>
+              </select>
+              <small class="text-muted">Usará la patente como código externo.</small>
+            </template>
+            <template v-else>
+              <input v-model="form.truckCodeExt" type="text" class="form-control" required placeholder="Patente (p. ej. ABC123)" />
+            </template>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Chofer (Código Externo)</label>
-            <input v-model="form.driverCodeExt" type="text" class="form-control" required />
+            <label class="form-label">Chofer</label>
+            <template v-if="drivers.length">
+              <select v-model="form.selectedDriver" class="form-select">
+                <option :value="null">Seleccione un chofer</option>
+                <option v-for="d in drivers" :key="d.id" :value="d">
+                  {{ d.name }} {{ d.lastName }} - DNI {{ d.dni }}
+                </option>
+              </select>
+              <small class="text-muted">Usará el DNI como código externo.</small>
+            </template>
+            <template v-else>
+              <input v-model="form.driverCodeExt" type="text" class="form-control" required placeholder="DNI (p. ej. 12345678)" />
+            </template>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Cliente (Código Externo)</label>
-            <input v-model="form.customerCodeExt" type="text" class="form-control" required />
+            <label class="form-label">Cliente</label>
+            <template v-if="customers.length">
+              <select v-model="form.selectedCustomer" class="form-select">
+                <option :value="null">Seleccione un cliente</option>
+                <option v-for="c in customers" :key="c.id" :value="c">
+                  {{ c.socialNumber }} - {{ c.mail || 'sin mail' }}
+                </option>
+              </select>
+              <small class="text-muted">Usará el CUIT/CUIL como código externo.</small>
+            </template>
+            <template v-else>
+              <input v-model="form.customerCodeExt" type="text" class="form-control" required placeholder="CUIT/CUIL (p. ej. 30123456789)" />
+            </template>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Producto (Código Externo)</label>
-            <input v-model="form.productCodeExt" type="text" class="form-control" required />
+            <label class="form-label">Producto</label>
+            <template v-if="products.length">
+              <select v-model="form.selectedProduct" class="form-select">
+                <option :value="null">Seleccione un producto</option>
+                <option v-for="p in products" :key="p.id" :value="p">
+                  {{ p.productName }} - {{ p.description || '' }}
+                </option>
+              </select>
+              <small class="text-muted">Usará el nombre del producto como código externo.</small>
+            </template>
+            <template v-else>
+              <input v-model="form.productCodeExt" type="text" class="form-control" required placeholder="Nombre (p. ej. GasOil)" />
+            </template>
           </div>
 
           <div class="mb-3">
             <label class="form-label">Fecha de Carga Prevista</label>
             <input v-model="form.scheduledDate" type="datetime-local" class="form-control" required />
+            <small class="text-muted">Formato local (YYYY-MM-DD HH:mm)</small>
           </div>
 
           <div class="mb-3">
             <label class="form-label">Preset (kg)</label>
-            <input v-model.number="form.preset" type="number" class="form-control" required />
+            <input v-model.number="form.preset" type="number" class="form-control" required min="1" placeholder="Ingrese preset en kg" />
           </div>
 
           <div class="modal-footer">
@@ -93,7 +138,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import api from '../services/api'
 
 export default {
@@ -102,7 +147,6 @@ export default {
   },
   emits: ['close', 'created'],
   setup(props, { emit }) {
-    const showModal = ref(props.show)
     const loading = ref(false)
     const errorMessage = ref('')
     const passwordGenerated = ref(false)
@@ -115,20 +159,72 @@ export default {
       customerCodeExt: '',
       productCodeExt: '',
       scheduledDate: new Date().toISOString().slice(0, 16),
-      preset: 1000
+      preset: null,
+      // selecciones
+      selectedTruck: null,
+      selectedDriver: null,
+      selectedCustomer: null,
+      selectedProduct: null
     })
+
+    // Listas para autocompletar
+    const trucks = ref([])
+    const drivers = ref([])
+    const customers = ref([])
+    const products = ref([])
+
+    const loadOptions = async () => {
+      try {
+        const [t, d, c, p] = await Promise.all([
+          api.get('/trucks').catch(() => ({ data: [] })),
+          api.get('/drivers').catch(() => ({ data: [] })),
+          api.get('/customers').catch(() => ({ data: [] })),
+          api.get('/products').catch(() => ({ data: [] }))
+        ])
+        trucks.value = t.data || []
+        drivers.value = d.data || []
+        customers.value = c.data || []
+        products.value = p.data || []
+      } catch (e) {
+        // Silencioso: si falla, se mantienen inputs manuales
+      }
+    }
+
+    onMounted(loadOptions)
+
+    const validateForm = () => {
+      const f = form.value
+      if (!f.orderNumber || (typeof f.orderNumber === 'string' && f.orderNumber.trim() === '')) {
+        errorMessage.value = 'El número de orden es obligatorio'
+        return false
+      }
+      const truckCode = f.selectedTruck?.licensePlate || f.truckCodeExt
+      if (!truckCode) { errorMessage.value = 'Debe seleccionar o ingresar un camión'; return false }
+      const driverCode = f.selectedDriver?.dni || f.driverCodeExt
+      if (!driverCode) { errorMessage.value = 'Debe seleccionar o ingresar un chofer'; return false }
+      const customerCode = f.selectedCustomer?.socialNumber || f.customerCodeExt
+      if (!customerCode) { errorMessage.value = 'Debe seleccionar o ingresar un cliente'; return false }
+      const productCode = f.selectedProduct?.productName || f.productCodeExt
+      if (!productCode) { errorMessage.value = 'Debe seleccionar o ingresar un producto'; return false }
+      if (!f.scheduledDate) { errorMessage.value = 'Fecha prevista es obligatoria'; return false }
+      if (!f.preset || Number(f.preset) <= 0) { errorMessage.value = 'Preset debe ser positivo'; return false }
+      errorMessage.value = ''
+      return true
+    }
 
     const submitForm = async () => {
       loading.value = true
       errorMessage.value = ''
 
       try {
+        if (!validateForm()) { loading.value = false; return }
+        // Mapear selecciones si existen
         const payload = {
           numeroOrden: form.value.orderNumber,
-          camionCodExt: form.value.truckCodeExt,
-          choferCodExt: form.value.driverCodeExt,
-          clienteCodExt: form.value.customerCodeExt,
-          productoCodExt: form.value.productCodeExt,
+          camionCodExt: form.value.selectedTruck?.licensePlate || form.value.truckCodeExt,
+          choferCodExt: form.value.selectedDriver?.dni || form.value.driverCodeExt,
+          clienteCodExt: form.value.selectedCustomer?.socialNumber || form.value.customerCodeExt,
+          productoCodExt: form.value.selectedProduct?.productName || form.value.productCodeExt,
           fechaCargaPrevista: new Date(form.value.scheduledDate).toISOString(),
           preset: form.value.preset
         }
@@ -155,7 +251,6 @@ export default {
     }
 
     const closeModal = () => {
-      showModal.value = false
       passwordGenerated.value = false
       errorMessage.value = ''
       form.value = {
@@ -165,18 +260,26 @@ export default {
         customerCodeExt: '',
         productCodeExt: '',
         scheduledDate: new Date().toISOString().slice(0, 16),
-        preset: 1000
+        preset: null,
+        selectedTruck: null,
+        selectedDriver: null,
+        selectedCustomer: null,
+        selectedProduct: null
       }
       emit('close')
     }
 
     return {
-      showModal,
+      show,
       loading,
       errorMessage,
       passwordGenerated,
       generatedPassword,
       form,
+      trucks,
+      drivers,
+      customers,
+      products,
       submitForm,
       copyToClipboard,
       finishAndReload,
