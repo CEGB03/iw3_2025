@@ -1,7 +1,6 @@
 package ar.edu.iua.iw3.model.business.implementations;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,9 +8,10 @@ import org.springframework.stereotype.Service;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.interfaces.IAuthBusiness;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import ar.edu.iua.iw3.model.auth.UserAccount;
+import ar.edu.iua.iw3.model.persistence.UserAccountRepository;
 import ar.edu.iua.iw3.security.JwtTokenProvider;
-import ar.edu.iua.iw3.security.Role;
-import ar.edu.iua.iw3.security.User;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -20,18 +20,11 @@ public class AuthBusiness implements IAuthBusiness {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private UserAccountRepository userRepo;
 
-    // Simulación de base de datos de usuarios (en producción usar DB real)
-    private static final Map<String, User> VALID_USERS = new HashMap<>();
-    
-    static {
-    //     VALID_USERS.put("admin", "admin123");      // usuario: admin, contraseña: admin123
-    //     VALID_USERS.put("operator", "operator123"); // usuario: operator, contraseña: operator123
-    //     VALID_USERS.put("viewer", "viewer123");     // usuario: viewer, contraseña: viewer123
-        VALID_USERS.put("admin", new User(null, "admin", "admin123", Role.ADMIN));
-        VALID_USERS.put("operator", new User(null, "operator", "operator123", Role.OPERADOR));
-        VALID_USERS.put("viewer", new User(null, "viewer", "viewer123", Role.VISOR));
-    }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // @Override
     // public String authenticate(String username, String password) throws UnauthorizedException, BusinessException {
@@ -99,29 +92,36 @@ public String authenticate(String username, String password) throws Unauthorized
         }
 
         // Buscar usuario
-        if (!VALID_USERS.containsKey(username)) {
-            log.warn("Intento de login con usuario inexistente: {}", username);
-            throw UnauthorizedException.builder()
-                    .message("Usuario o contraseña incorrectos")
-                    .build();
-        }
+            // Buscar usuario en BD
+            Optional<UserAccount> opt = userRepo.findByUsername(username);
+            if (opt.isEmpty()) {
+                log.warn("Intento de login con usuario inexistente: {}", username);
+                throw UnauthorizedException.builder()
+                        .message("Usuario o contraseña incorrectos")
+                        .build();
+            }
 
-        // Obtener el usuario
-        User user = VALID_USERS.get(username);
+            UserAccount user = opt.get();
 
-        // Validar contraseña
-        if (!user.getPassword().equals(password)) {
-            log.warn("Intento de login fallido para usuario: {}", username);
-            throw UnauthorizedException.builder()
-                    .message("Usuario o contraseña incorrectos")
-                    .build();
-        }
+            if (!user.isEnabled()) {
+                throw UnauthorizedException.builder()
+                        .message("Usuario deshabilitado")
+                        .build();
+            }
 
-        // 🔥 Generar token JWT con rol
-        String token = jwtTokenProvider.generateToken(
-                user.getUsername(),
-                user.getRole().name()
-        );
+            // Validar contraseña con BCrypt
+            if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+                log.warn("Intento de login fallido para usuario: {}", username);
+                throw UnauthorizedException.builder()
+                        .message("Usuario o contraseña incorrectos")
+                        .build();
+            }
+
+            // Generar token JWT con rol
+            String token = jwtTokenProvider.generateToken(
+                    user.getUsername(),
+                    user.getRole().name()
+            );
 
         log.info("Usuario {} autenticado exitosamente con JWT", username);
 

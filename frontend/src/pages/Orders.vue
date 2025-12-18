@@ -10,8 +10,10 @@
 
     <div class="mb-3">
       <button class="btn btn-primary" @click="refresh">Refrescar</button>
-      <button class="btn btn-success ms-2" @click="newOrder">Crear Orden</button>
+      <button class="btn btn-success ms-2" @click="openCreateModal">Crear Orden</button>
     </div>
+
+    <CreateOrderModal :show="showCreateModal" @close="showCreateModal = false" @created="refresh" />
 
     <table class="table table-striped">
       <thead>
@@ -43,14 +45,17 @@
 
 <script>
 import api from '../services/api'
+import CreateOrderModal from '../components/CreateOrderModal.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
+  components: { CreateOrderModal },
   setup() {
     const orders = ref([])
     const user = localStorage.getItem('username') || ''
     const router = useRouter()
+    const showCreateModal = ref(false)
 
     const load = async () => {
       try {
@@ -65,22 +70,13 @@ export default {
 
     const refresh = () => load()
     const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('username'); router.push('/login') }
-    const newOrder = () => {
-      const sample = {
-        orderNumber: Math.floor(Math.random()*100000),
-        truck: { licensePlate: 'TEST-123' },
-        driver: { dni: 12345678 },
-        customer: { socialNumber: 987654321 },
-        product: { productName: 'GNL' },
-        scheduledDate: new Date().toISOString(),
-        preset: 1000
-      }
-      api.post('/orders', sample).then(() => load())
+    const openCreateModal = () => {
+      showCreateModal.value = true
     }
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, newOrder }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal }
   }
 }
 </script>

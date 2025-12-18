@@ -74,8 +74,12 @@ docker compose -f /home/user/infra_iw32025/docker-compose.yml restart nginx
 echo "✅ Frontend copiado y Nginx reiniciado"
 
 
+# Actualizar docker-compose.yml para arreglar path de nginx.conf
+echo "8. Arreglando docker-compose.yml..."
+sed -i 's|./nginx/nginx.conf:|./nginx/default.conf:|g' /home/user/infra_iw32025/docker-compose.yml
+
 # Limpieza
-#echo "8. Limpiando archivos temporales..."
+#echo "9. Limpiando archivos temporales..."
 #rm -rf /tmp/iw3_2025
 
 echo ""

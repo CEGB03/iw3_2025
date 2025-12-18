@@ -23,9 +23,15 @@
         <strong>Última masa acumulada:</strong> {{ order.lastMassAccumulated }}
       </div>
 
-      <div class="mb-3">
-        <label>Contraseña de activación (si aplica)</label>
-        <input v-model="password" class="form-control" />
+      <div class="mb-3" v-if="password">
+        <div class="alert alert-info">
+          <strong>Contraseña de activación:</strong> <span class="fw-bold text-primary">{{ password }}</span>
+        </div>
+      </div>
+
+      <div class="mb-3" v-else>
+        <label>Contraseña de activación (si tiene)</label>
+        <input class="form-control" placeholder="Ingrese la contraseña si es necesaria" />
       </div>
 
       <div class="mb-3">
@@ -81,6 +87,7 @@ export default {
     const load = async () => {
       const res = await api.get(`/orders/${id}`)
       order.value = res.data
+      password.value = res.data.password || res.data.activationPassword || ''
     }
 
     const registerTare = async () => {
