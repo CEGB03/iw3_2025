@@ -239,6 +239,10 @@ public class OrderBusiness implements IOrderBusiness {
         // Si todas las validaciones pasan, guardar el detalle
         detail.setOrder(order);
         detail.setTimeStamp(java.time.LocalDateTime.now());
+        // Marcar inicio de carga si aún no se registró
+        if (order.getTimeInitialLoading() == null) {
+            order.setTimeInitialLoading(detail.getTimeStamp());
+        }
         
         try {
             // Guardar el detalle
