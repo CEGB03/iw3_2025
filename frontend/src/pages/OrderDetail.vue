@@ -23,15 +23,27 @@
         <strong>Última masa acumulada:</strong> {{ order.lastMassAccumulated }}
       </div>
 
-      <div class="mb-3" v-if="password">
-        <div class="alert alert-info">
-          <strong>Contraseña de activación:</strong> <span class="fw-bold text-primary">{{ password }}</span>
+      <div class="mb-3">
+        <label>Contraseña de activación</label>
+        <div class="input-group">
+          <input 
+            type="password" 
+            v-model="manualPassword" 
+            class="form-control" 
+            placeholder="Ingrese la contraseña si es necesaria"
+            @input="handlePasswordInput"
+          />
+          <button class="btn btn-outline-secondary" type="button" @click="revealPassword" v-if="!passwordVisible && manualPassword">
+            👁️ Mostrar
+          </button>
+          <button class="btn btn-outline-secondary" type="button" @click="hidePassword" v-if="passwordVisible">
+            👁️‍🗨️ Ocultar
+          </button>
         </div>
-      </div>
-
-      <div class="mb-3" v-else>
-        <label>Contraseña de activación (si tiene)</label>
-        <input class="form-control" placeholder="Ingrese la contraseña si es necesaria" />
+        <div v-if="passwordVisible" class="alert alert-info mt-2">
+          <strong>Contraseña:</strong> <span class="fw-bold text-primary">{{ manualPassword }}</span>
+          <div v-if="passwordTimeoutMessage" class="text-muted small mt-2">{{ passwordTimeoutMessage }}</div>
+        </div>
       </div>
 
       <div class="mb-3">
@@ -99,6 +111,10 @@ export default {
     const id = route.params.id
     const order = ref(null)
     const password = ref('')
+    const manualPassword = ref('')
+    const passwordVisible = ref(false)
+    const passwordTimeoutMessage = ref('')
+    const passwordTimeoutHandle = ref(null)
     const reconciliation = ref(null)
     const showTareForm = ref(false)
     const tare = ref(null)
@@ -110,6 +126,43 @@ export default {
       // Si ya no está en estado 1, ocultar formulario de tara
       if (order.value && order.value.state !== 1) {
         showTareForm.value = false
+      }
+    }
+
+    const handlePasswordInput = () => {
+      // Actualizar password para que se use en las peticiones
+      password.value = manualPassword.value
+      // Resetear timeout si había uno
+      if (passwordTimeoutHandle.value) {
+        clearTimeout(passwordTimeoutHandle.value)
+      }
+      // Cuando se ingresa contraseña manualmente, ocultarla de inmediato
+      passwordVisible.value = false
+      passwordTimeoutMessage.value = ''
+    }
+
+    const revealPassword = () => {
+      if (!manualPassword.value) return
+      passwordVisible.value = true
+      passwordTimeoutMessage.value = 'Se ocultará en 30 segundos...'
+      // Limpiar timeout anterior si existe
+      if (passwordTimeoutHandle.value) {
+        clearTimeout(passwordTimeoutHandle.value)
+      }
+      // Mostrar durante 30 segundos (30000 ms)
+      passwordTimeoutHandle.value = setTimeout(() => {
+        passwordVisible.value = false
+        passwordTimeoutMessage.value = ''
+        passwordTimeoutHandle.value = null
+      }, 30000)
+    }
+
+    const hidePassword = () => {
+      passwordVisible.value = false
+      passwordTimeoutMessage.value = ''
+      if (passwordTimeoutHandle.value) {
+        clearTimeout(passwordTimeoutHandle.value)
+        passwordTimeoutHandle.value = null
       }
     }
 
@@ -188,7 +241,7 @@ export default {
 
     onMounted(load)
 
-    return { order, password, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
+    return { order, password, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
   }
 }
 </script>
