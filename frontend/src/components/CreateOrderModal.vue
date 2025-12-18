@@ -80,45 +80,34 @@
 
           <div class="mb-3">
             <label class="form-label">Preset (kg)</label>
-            <input v-model.number="form.preset" type="number" class="form-control" required min="1" placeholder="Ingrese preset en kg" />
+            <input
+              v-model="form.preset"
+              type="text"
+              inputmode="decimal"
+              class="form-control"
+              :class="{ 'is-invalid': form.preset !== '' && !validPreset }"
+              required
+              placeholder="Ingrese preset en kg (admite coma)"
+            />
+            <div v-if="form.preset !== '' && !validPreset" class="invalid-feedback">
+              Ingrese un número mayor a 0.
+            </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeModal">Cancelar</button>
-            <button type="submit" class="btn btn-primary" :disabled="loading">
+            <button type="submit" class="btn btn-primary" :disabled="loading || !validPreset">
               {{ loading ? 'Creando...' : 'Crear Orden' }}
             </button>
           </div>
         </form>
       </div>
 
-      <!-- Contraseña generada -->
+      <!-- Éxito simple -->
       <div v-else class="modal-body text-center">
         <div class="alert alert-success">
           <h4>¡Orden Creada Exitosamente!</h4>
         </div>
-
-        <div class="mb-4">
-          <p class="text-muted">Contraseña de Activación:</p>
-          <div class="password-display">
-            <h2 class="text-primary fw-bold">
-              {{ generatedPassword ? generatedPassword : 'Se generará al registrar la tara (pesaje inicial).' }}
-            </h2>
-          </div>
-          <button 
-            v-if="generatedPassword"
-            type="button" 
-            class="btn btn-outline-primary btn-sm mt-2"
-            @click="copyToClipboard"
-          >
-            📋 Copiar al portapapeles
-          </button>
-        </div>
-
-        <p class="text-muted small">
-          Si no ves contraseña, se asignará automáticamente al registrar la tara (estado 2).
-        </p>
-
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" @click="finishAndReload">
             Aceptar
@@ -135,7 +124,7 @@
 </template>
 
 <script>
-import { ref, onMounted, toRef } from 'vue'
+import { ref, onMounted, toRef, computed } from 'vue'
 import api from '../services/api'
 
 export default {
@@ -154,7 +143,7 @@ export default {
       driverCodeExt: '',
       customerCodeExt: '',
       productCodeExt: '',
-      preset: null,
+      preset: '',
       // selecciones
       selectedTruck: null,
       selectedDriver: null,
@@ -201,10 +190,21 @@ export default {
       if (!customerCode) { errorMessage.value = 'Debe seleccionar o ingresar un cliente'; return false }
       const productCode = f.selectedProduct?.productName || f.productCodeExt
       if (!productCode) { errorMessage.value = 'Debe seleccionar o ingresar un producto'; return false }
-      if (!f.preset || Number(f.preset) <= 0) { errorMessage.value = 'Preset debe ser positivo'; return false }
+      if (!validPreset.value) { errorMessage.value = 'Preset debe ser un número mayor a 0'; return false }
       errorMessage.value = ''
       return true
     }
+
+    const presetNumber = computed(() => {
+      const raw = (form.value.preset ?? '').toString().trim().replace(',', '.')
+      const n = parseFloat(raw)
+      return isNaN(n) ? NaN : n
+    })
+
+    const validPreset = computed(() => {
+      const n = presetNumber.value
+      return typeof n === 'number' && !isNaN(n) && n > 0
+    })
 
     const submitForm = async () => {
       loading.value = true
@@ -215,7 +215,7 @@ export default {
         // Mapear al DTO que espera el backend (OrderRequestDTO)
         const payload = {
           externalCode: form.value.orderNumber,
-          preset: form.value.preset,
+          preset: presetNumber.value,
           truck: {
             licensePlate: form.value.selectedTruck?.licensePlate || form.value.truckCodeExt,
             description: form.value.selectedTruck?.description || undefined,
@@ -290,7 +290,8 @@ export default {
       submitForm,
       copyToClipboard,
       finishAndReload,
-      closeModal
+      closeModal,
+      validPreset
     }
   }
 }
