@@ -183,14 +183,23 @@
       <!-- Crear Camión -->
       <div v-if="createSection === 'truck'" class="card mb-3">
         <div class="card-body">
-          <h6>🚚 Crear Camión + 🛢️ Cisterna</h6>
-          <div class="row g-2">
-            <div class="col-md-3"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente camión (ABC123)" /></div>
-            <div class="col-md-3"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
-            <div class="col-md-3"><input v-model="truckForm.cisternLicencePlate" class="form-control" placeholder="Patente cisterna (C1-ABC)" /></div>
-            <div class="col-md-2"><input v-model.number="truckForm.cisternCapacity" type="number" min="0" step="0.01" class="form-control" placeholder="Capacidad (L)" /></div>
-            <div class="col-md-1 d-grid"><button class="btn btn-success" :disabled="!canCreateTruck" @click="createTruck">Crear</button></div>
+          <h6>🚚 Crear Camión + 🛢️ Cisterna(s)</h6>
+          <div class="row g-2 mb-3">
+            <div class="col-md-5"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente camión (ABC123)" /></div>
+            <div class="col-md-5"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
+            <div class="col-md-2 d-grid"><button class="btn btn-info btn-sm" @click="addCisternRow">+ Cisterna</button></div>
           </div>
+          
+          <div v-if="truckForm.cisterns && truckForm.cisterns.length" class="mb-3">
+            <h7 class="text-muted">Cisternas:</h7>
+            <div v-for="(c, i) in truckForm.cisterns" :key="i" class="row g-2 mb-2">
+              <div class="col-md-4"><input v-model="c.licence_plate" class="form-control form-control-sm" placeholder="Patente cisterna (C1-ABC)" /></div>
+              <div class="col-md-3"><input v-model.number="c.capacity" type="number" min="0" step="0.01" class="form-control form-control-sm" placeholder="Capacidad (L)" /></div>
+              <div class="col-md-2 d-grid"><button class="btn btn-danger btn-sm" @click="removeCisternRow(i)">Quitar</button></div>
+            </div>
+          </div>
+
+          <div class="d-grid"><button class="btn btn-success" :disabled="!canCreateTruck" @click="createTruck">Crear</button></div>
         </div>
       </div>
 
@@ -258,12 +267,12 @@ export default {
     const driversList = ref([])
     const customersList = ref([])
     const productsList = ref([])
-    const truckForm = ref({ licensePlate: '', description: '', cisternLicencePlate: '', cisternCapacity: null })
+    const truckForm = ref({ licensePlate: '', description: '', cisterns: [{ licence_plate: '', capacity: null }] })
     const expandedTrucks = ref({})
     const expandedDrivers = ref({})
     const expandedDriverTrucks = ref({})
     const driverTrucks = ref({})
-    const canCreateTruck = computed(() => !!truckForm.value.licensePlate && !!truckForm.value.cisternLicencePlate && truckForm.value.cisternCapacity > 0)
+    const canCreateTruck = computed(() => !!truckForm.value.licensePlate && truckForm.value.cisterns.some(c => !!c.licence_plate && c.capacity > 0))
     const driverForm = ref({ dni: null, name: '', lastName: '' })
     const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
     const productForm = ref({ productName: '', description: '' })
@@ -338,21 +347,24 @@ export default {
       expandedDriverTrucks.value[key] = !expandedDriverTrucks.value[key]
     }
 
+    const addCisternRow = () => {
+      truckForm.value.cisterns.push({ licence_plate: '', capacity: null })
+    }
+
+    const removeCisternRow = (index) => {
+      truckForm.value.cisterns.splice(index, 1)
+    }
+
     const createTruck = async () => {
       try {
         await api.post('/trucks', {
           licensePlate: truckForm.value.licensePlate,
           description: truckForm.value.description,
-          // el backend espera `truncker` y dentro `licence_plate`
-          truncker: [
-            {
-              licence_plate: truckForm.value.cisternLicencePlate,
-              capacity: Number(truckForm.value.cisternCapacity)
-            }
-          ]
+          // el backend espera `truncker` con arreglo de cisternas
+          truncker: truckForm.value.cisterns.filter(c => !!c.licence_plate && c.capacity > 0)
         })
         alert('Camión creado')
-        truckForm.value = { licensePlate: '', description: '', cisternLicencePlate: '', cisternCapacity: null }
+        truckForm.value = { licensePlate: '', description: '', cisterns: [{ licence_plate: '', capacity: null }] }
         if (listSection.value === 'truck') { loadList('truck') }
       } catch (e) { alert(e.response?.data?.message || 'Error creando camión') }
     }
@@ -386,7 +398,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck, expandedDrivers, expandedDriverTrucks, driverTrucks, toggleDriver, toggleDriverTruck, addCisternRow, removeCisternRow }
   }
 }
 </script>
