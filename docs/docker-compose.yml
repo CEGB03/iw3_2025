@@ -15,7 +15,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./nginx/certs:/etc/nginx/conf.d/cert:ro
+      - /etc/letsencrypt:/etc/nginx/ssl:ro
       - ./frontend_dist:/usr/share/nginx/html:ro
 
   adminer:

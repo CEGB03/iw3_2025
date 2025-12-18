@@ -138,7 +138,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 
 export default {
@@ -147,6 +147,8 @@ export default {
   },
   emits: ['close', 'created'],
   setup(props, { emit }) {
+    // Hacer reactivo el prop `show` para el template
+    const show = computed(() => props.show)
     const loading = ref(false)
     const errorMessage = ref('')
     const passwordGenerated = ref(false)
