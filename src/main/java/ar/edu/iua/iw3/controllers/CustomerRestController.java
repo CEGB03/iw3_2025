@@ -64,7 +64,7 @@ public class CustomerRestController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('OPERADOR')")
     public ResponseEntity<?> list(
             @Parameter(description = "Número de página (comenzando en 0)") 
             @RequestParam(defaultValue = "0") int page,
