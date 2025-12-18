@@ -195,7 +195,7 @@
             <div v-for="(c, i) in truckForm.cisterns" :key="i" class="row g-2 mb-2">
               <div class="col-md-4"><input v-model="c.licence_plate" class="form-control form-control-sm" placeholder="Patente cisterna (C1-ABC)" /></div>
               <div class="col-md-3"><input v-model.number="c.capacity" type="number" min="0" step="0.01" class="form-control form-control-sm" placeholder="Capacidad (L)" /></div>
-              <div class="col-md-2 d-grid"><button class="btn btn-danger btn-sm" @click="removeCisternRow(i)">Quitar</button></div>
+              <div class="col-md-2 d-grid"><button class="btn btn-danger btn-sm" :disabled="truckForm.cisterns.length === 1" @click="removeCisternRow(i)">Quitar</button></div>
             </div>
           </div>
 
@@ -272,7 +272,7 @@ export default {
     const expandedDrivers = ref({})
     const expandedDriverTrucks = ref({})
     const driverTrucks = ref({})
-    const canCreateTruck = computed(() => !!truckForm.value.licensePlate && truckForm.value.cisterns.some(c => !!c.licence_plate && c.capacity > 0))
+    const canCreateTruck = computed(() => !!truckForm.value.licensePlate && truckForm.value.cisterns.filter(c => !!c.licence_plate && c.capacity > 0).length > 0)
     const driverForm = ref({ dni: null, name: '', lastName: '' })
     const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
     const productForm = ref({ productName: '', description: '' })
@@ -352,7 +352,11 @@ export default {
     }
 
     const removeCisternRow = (index) => {
-      truckForm.value.cisterns.splice(index, 1)
+      if (truckForm.value.cisterns.length > 1) {
+        truckForm.value.cisterns.splice(index, 1)
+      } else {
+        alert('Debe tener al menos una cisterna')
+      }
     }
 
     const createTruck = async () => {
