@@ -60,9 +60,41 @@
       <div v-if="listSection === 'truck'" class="card mb-3">
         <div class="card-body">
           <h6>🚚 Camiones</h6>
-          <table class="table table-sm"><thead><tr><th>Patente</th><th>Descripción</th></tr></thead><tbody>
-            <tr v-for="t in trucksList" :key="t.id"><td>{{ t.licensePlate }}</td><td>{{ t.description }}</td></tr>
-          </tbody></table>
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th style="width: 40px;"></th><th>Patente</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+              <template v-for="t in trucksList" :key="t.id">
+                <tr>
+                  <td>
+                    <button class="btn btn-sm btn-outline-secondary" @click="toggleTruck(t.id)" :aria-expanded="!!expandedTrucks[t.id]">
+                      {{ expandedTrucks[t.id] ? '▼' : '▶' }}
+                    </button>
+                  </td>
+                  <td>{{ t.licensePlate }}</td>
+                  <td>{{ t.description }}</td>
+                </tr>
+                <tr v-if="expandedTrucks[t.id]">
+                  <td></td>
+                  <td colspan="2">
+                    <div v-if="t.truncker && t.truncker.length">
+                      <table class="table table-sm mb-0">
+                        <thead><tr><th>Patente cisterna</th><th>Capacidad (L)</th></tr></thead>
+                        <tbody>
+                          <tr v-for="(c, i) in t.truncker" :key="i">
+                            <td>{{ c.licence_plate || c.licencePlate }}</td>
+                            <td>{{ c.capacity }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div v-else class="text-muted">Sin cisternas</div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -99,11 +131,13 @@
       <!-- Crear Camión -->
       <div v-if="createSection === 'truck'" class="card mb-3">
         <div class="card-body">
-          <h6>🚚 Crear Camión</h6>
+          <h6>🚚 Crear Camión + 🛢️ Cisterna</h6>
           <div class="row g-2">
-            <div class="col-md-4"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente (ABC123)" /></div>
-            <div class="col-md-6"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
-            <div class="col-md-2 d-grid"><button class="btn btn-success" :disabled="!truckForm.licensePlate" @click="createTruck">Crear</button></div>
+            <div class="col-md-3"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente camión (ABC123)" /></div>
+            <div class="col-md-3"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
+            <div class="col-md-3"><input v-model="truckForm.cisternLicencePlate" class="form-control" placeholder="Patente cisterna (C1-ABC)" /></div>
+            <div class="col-md-2"><input v-model.number="truckForm.cisternCapacity" type="number" min="0" step="0.01" class="form-control" placeholder="Capacidad (L)" /></div>
+            <div class="col-md-1 d-grid"><button class="btn btn-success" :disabled="!canCreateTruck" @click="createTruck">Crear</button></div>
           </div>
         </div>
       </div>
@@ -153,7 +187,7 @@
 <script>
 import api from '../services/api'
 import CreateOrderModal from '../components/CreateOrderModal.vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -172,7 +206,9 @@ export default {
     const driversList = ref([])
     const customersList = ref([])
     const productsList = ref([])
-    const truckForm = ref({ licensePlate: '', description: '' })
+    const truckForm = ref({ licensePlate: '', description: '', cisternLicencePlate: '', cisternCapacity: null })
+    const expandedTrucks = ref({})
+    const canCreateTruck = computed(() => !!truckForm.value.licensePlate && !!truckForm.value.cisternLicencePlate && truckForm.value.cisternCapacity > 0)
     const driverForm = ref({ dni: null, name: '', lastName: '' })
     const customerForm = ref({ socialNumber: null, phoneNumber: null, mail: '' })
     const productForm = ref({ productName: '', description: '' })
@@ -227,12 +263,23 @@ export default {
         alert(e.response?.data?.message || 'Error al listar ' + what)
       }
     }
+    const toggleTruck = (id) => { expandedTrucks.value[id] = !expandedTrucks.value[id] }
 
     const createTruck = async () => {
       try {
-        await api.post('/trucks', { licensePlate: truckForm.value.licensePlate, description: truckForm.value.description })
+        await api.post('/trucks', {
+          licensePlate: truckForm.value.licensePlate,
+          description: truckForm.value.description,
+          // el backend espera `truncker` y dentro `licence_plate`
+          truncker: [
+            {
+              licence_plate: truckForm.value.cisternLicencePlate,
+              capacity: Number(truckForm.value.cisternCapacity)
+            }
+          ]
+        })
         alert('Camión creado')
-        truckForm.value = { licensePlate: '', description: '' }
+        truckForm.value = { licensePlate: '', description: '', cisternLicencePlate: '', cisternCapacity: null }
         if (listSection.value === 'truck') { loadList('truck') }
       } catch (e) { alert(e.response?.data?.message || 'Error creando camión') }
     }
@@ -266,7 +313,7 @@ export default {
 
     onMounted(load)
 
-    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct }
+    return { orders, refresh, logout, user, openCreateModal, showCreateModal, role, toggleCreate, loadList, createSection, listSection, trucksList, driversList, customersList, productsList, truckForm, driverForm, customerForm, productForm, createTruck, createDriver, createCustomer, createProduct, canCreateTruck, expandedTrucks, toggleTruck }
   }
 }
 </script>
