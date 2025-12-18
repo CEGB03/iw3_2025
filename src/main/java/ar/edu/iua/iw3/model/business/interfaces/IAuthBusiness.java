@@ -6,4 +6,5 @@ import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 public interface IAuthBusiness {
     String authenticate(String username, String password) throws UnauthorizedException, BusinessException;
     boolean validateToken(String token) throws BusinessException;
+    void signup(String username, String password, String role) throws BusinessException;
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ar.edu.iua.iw3.controllers.dto.LoginRequestDTO;
 import ar.edu.iua.iw3.controllers.dto.LoginResponseDTO;
+import ar.edu.iua.iw3.controllers.dto.SignupRequestDTO;
 import ar.edu.iua.iw3.model.business.exceptions.BusinessException;
 import ar.edu.iua.iw3.model.business.exceptions.UnauthorizedException;
 import ar.edu.iua.iw3.model.business.interfaces.IAuthBusiness;
@@ -209,5 +210,141 @@ public class LoginController {
     @GetMapping("/test-viewer")
     public ResponseEntity<?> testViewer() {
         return new ResponseEntity<>("OK VISOR", HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Crear nuevo usuario (solo ADMIN)",
+        description = """
+            Crea un nuevo usuario en el sistema. Solo usuarios con rol ADMIN pueden acceder a este endpoint.
+            
+            **Roles disponibles:**
+            - ADMIN: Acceso total, puede crear usuarios
+            - OPERADOR: Puede registrar detalles de carga y ver órdenes
+            - VISOR: Solo lectura de información
+            
+            **Validaciones:**
+            - El nombre de usuario debe ser único
+            - La contraseña se almacena de forma segura (BCrypt)
+            - El rol debe ser uno de los valores válidos
+            """
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Usuario creado exitosamente",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "message": "Usuario creado exitosamente",
+                  "username": "nuevo_usuario",
+                  "role": "OPERADOR"
+                }
+                """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Validación fallida (usuario duplicado, rol inválido, etc)",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "code": 400,
+                  "message": "El usuario ya existe"
+                }
+                """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Acceso denegado - solo ADMIN puede crear usuarios",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "code": 403,
+                  "message": "Acceso denegado"
+                }
+                """)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Datos de entrada inválidos o incompletos",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(example = """
+                {
+                  "code": 422,
+                  "message": "Campos requeridos: username, password, role"
+                }
+                """)
+            )
+        )
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(
+        value = "/signup",
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> signup(@RequestBody SignupRequestDTO signupRequest) {
+        try {
+            // Validación básica de entrada
+            if (signupRequest == null) {
+                return new ResponseEntity<>(
+                    response.build(HttpStatus.UNPROCESSABLE_ENTITY, null, "El body de la solicitud no puede estar vacío"),
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            // Validar que los campos requeridos no estén vacíos
+            if (signupRequest.getUsername() == null || signupRequest.getUsername().trim().isEmpty()) {
+                return new ResponseEntity<>(
+                    response.build(HttpStatus.UNPROCESSABLE_ENTITY, null, "El nombre de usuario es requerido"),
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
+                return new ResponseEntity<>(
+                    response.build(HttpStatus.UNPROCESSABLE_ENTITY, null, "La contraseña es requerida"),
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            if (signupRequest.getRole() == null || signupRequest.getRole().trim().isEmpty()) {
+                return new ResponseEntity<>(
+                    response.build(HttpStatus.UNPROCESSABLE_ENTITY, null, "El rol es requerido"),
+                    HttpStatus.UNPROCESSABLE_ENTITY
+                );
+            }
+
+            // Crear el usuario
+            authBusiness.signup(signupRequest.getUsername(), signupRequest.getPassword(), signupRequest.getRole());
+
+            // Construir respuesta exitosa
+            java.util.Map<String, Object> responseBody = new java.util.HashMap<>();
+            responseBody.put("message", "Usuario creado exitosamente");
+            responseBody.put("username", signupRequest.getUsername());
+            responseBody.put("role", signupRequest.getRole().toUpperCase());
+
+            log.info("Usuario {} creado exitosamente por admin", signupRequest.getUsername());
+            return new ResponseEntity<>(responseBody, HttpStatus.CREATED);
+
+        } catch (BusinessException e) {
+            log.warn("Error al crear usuario: {}", e.getMessage());
+            return new ResponseEntity<>(
+                response.build(HttpStatus.BAD_REQUEST, e, e.getMessage()),
+                HttpStatus.BAD_REQUEST
+            );
+        } catch (Exception e) {
+            log.error("Error inesperado al crear usuario: {}", e.getMessage(), e);
+            return new ResponseEntity<>(
+                response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, "Error interno en el servidor"),
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }

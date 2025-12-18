@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import ar.edu.iua.iw3.model.auth.UserAccount;
 import ar.edu.iua.iw3.model.persistence.UserAccountRepository;
 import ar.edu.iua.iw3.security.JwtTokenProvider;
+import ar.edu.iua.iw3.security.Role;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -156,6 +157,64 @@ public String authenticate(String username, String password) throws Unauthorized
             throw BusinessException.builder()
                     .ex(e)
                     .message("Error al validar token")
+                    .build();
+        }
+    }
+
+    @Override
+    public void signup(String username, String password, String roleStr) throws BusinessException {
+        try {
+            // Validar entrada
+            if (username == null || username.trim().isEmpty()) {
+                throw BusinessException.builder()
+                        .message("El nombre de usuario no puede estar vacío")
+                        .build();
+            }
+            if (password == null || password.trim().isEmpty()) {
+                throw BusinessException.builder()
+                        .message("La contraseña no puede estar vacía")
+                        .build();
+            }
+            if (roleStr == null || roleStr.trim().isEmpty()) {
+                throw BusinessException.builder()
+                        .message("El rol no puede estar vacío")
+                        .build();
+            }
+
+            // Verificar si usuario ya existe
+            if (userRepo.existsByUsername(username)) {
+                throw BusinessException.builder()
+                        .message("El usuario ya existe")
+                        .build();
+            }
+
+            // Convertir string a Role enum
+            Role role;
+            try {
+                role = Role.valueOf(roleStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw BusinessException.builder()
+                        .message("Rol inválido. Roles disponibles: ADMIN, OPERADOR, VISOR")
+                        .build();
+            }
+
+            // Crear nuevo usuario
+            UserAccount user = new UserAccount();
+            user.setUsername(username);
+            user.setPasswordHash(passwordEncoder.encode(password));
+            user.setRole(role);
+            user.setEnabled(true);
+
+            userRepo.save(user);
+            log.info("Usuario {} creado exitosamente con rol {}", username, role);
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error creando usuario: {}", e.getMessage(), e);
+            throw BusinessException.builder()
+                    .ex(e)
+                    .message("Error al crear el usuario")
                     .build();
         }
     }
