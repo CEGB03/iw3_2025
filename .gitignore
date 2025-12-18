@@ -34,3 +34,19 @@ build/
 ## propio
 Trabajo Integrador - Ingeniería Web 3 2025.md
 iw3.code-workspace
+
+# VUE
+frontend/node_modules/
+frontend/dist/
+frontend/.env.development
+frontend/.env.testing
+frontend/.env.staging
+frontend/.env.production.local
+frontend/.package-lock.json
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log**
+.pnpm-debug.log*
+.vite/
+.env.local
+.env.*.local
