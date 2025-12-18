@@ -24,13 +24,19 @@
       </div>
 
       <div class="mb-3">
-        <label>Contraseña de activación</label>
+        <label>
+          Contraseña de cuenta (para revelar)
+          <span
+            class="ms-2 text-muted"
+            title="Ingresa tu contraseña de cuenta para revelar la contraseña de activación por 30 segundos. La contraseña de activación se utiliza para obtener el preset y agregar detalle durante la carga."
+          >ℹ️</span>
+        </label>
         <div class="input-group">
           <input 
             type="password" 
             v-model="manualPassword" 
             class="form-control" 
-            placeholder="Ingrese la contraseña si es necesaria"
+            placeholder="Ingrese su contraseña de cuenta para revelar la contraseña de activacion nuevamente"
             @input="handlePasswordInput"
           />
           <button class="btn btn-outline-secondary" type="button" @click="revealPassword" v-if="!passwordVisible && manualPassword">
@@ -41,7 +47,7 @@
           </button>
         </div>
         <div v-if="passwordVisible" class="alert alert-info mt-2">
-          <strong>Contraseña:</strong> <span class="fw-bold text-primary">{{ manualPassword }}</span>
+          <strong>Contraseña de activación:</strong> <span class="fw-bold text-primary">{{ activationPassword }}</span>
           <div v-if="passwordTimeoutMessage" class="text-muted small mt-2">{{ passwordTimeoutMessage }}</div>
         </div>
       </div>
@@ -110,7 +116,7 @@ export default {
     const route = useRoute()
     const id = route.params.id
     const order = ref(null)
-    const password = ref('')
+    const activationPassword = ref('')
     const manualPassword = ref('')
     const passwordVisible = ref(false)
     const passwordTimeoutMessage = ref('')
@@ -122,8 +128,8 @@ export default {
     const load = async () => {
       const res = await api.get(`/orders/${id}`)
       order.value = res.data
-      // No exponer ni pre-cargar la contraseña desde backend en UI
-      password.value = ''
+      // Cargar contraseña de activación pero NO mostrarla hasta que se revele
+      activationPassword.value = res.data.activationPassword || res.data.password || ''
       // Si ya no está en estado 1, ocultar formulario de tara
       if (order.value && order.value.state !== 1) {
         showTareForm.value = false
@@ -131,8 +137,6 @@ export default {
     }
 
     const handlePasswordInput = () => {
-      // Actualizar password para que se use en las peticiones
-      password.value = manualPassword.value
       // Resetear timeout si había uno
       if (passwordTimeoutHandle.value) {
         clearTimeout(passwordTimeoutHandle.value)
@@ -192,7 +196,7 @@ export default {
 
     const startOrder = async () => {
       try {
-        const res = await api.post(`/orders/${id}/start`, null, { headers: { 'X-Activation-Password': password.value ? Number(password.value) : undefined }})
+        const res = await api.post(`/orders/${id}/start`, null, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
         alert('Preset: ' + res.data.preset)
       } catch (e) {
         alert(e.response?.data?.message || 'Error')
@@ -210,7 +214,7 @@ export default {
         timeStamp: new Date().toISOString()
       }
       try {
-        await api.post(`/orders/${id}/detail`, detail, { headers: { 'X-Activation-Password': password.value ? Number(password.value) : undefined }})
+        await api.post(`/orders/${id}/detail`, detail, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
         await load()
       } catch (e) {
         alert(e.response?.data?.message || 'Error agregando detalle')
@@ -237,7 +241,7 @@ export default {
 
     onMounted(load)
 
-    return { order, password, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
+    return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
   }
 }
 </script>
