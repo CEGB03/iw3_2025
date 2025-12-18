@@ -77,18 +77,16 @@ public class OrderRestController {
     })
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> listPaginated(
-            @Parameter(description = "Número de página (comenzando en 0)") 
-            org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Cantidad de registros por página") 
-            org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
         try {
             Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
             Page<Order> ordersPage = orderBusiness.listPaginated(pageable);
-            
             java.util.List<OrderResponseDTO> dtos = ordersPage.getContent().stream()
                     .map(o -> orderMapper.toDto(o)).toList();
-            
             PaginatedResponse<OrderResponseDTO> response = new PaginatedResponse<>(
                     dtos,
                     ordersPage.getTotalPages(),
@@ -100,11 +98,36 @@ public class OrderRestController {
                     ordersPage.hasNext(),
                     ordersPage.hasPrevious()
             );
-            
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (BusinessException e) {
             return new ResponseEntity<>(this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @GetMapping(value = "/my-orders", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('VIEWER') or hasRole('OPERADOR')")
+    public ResponseEntity<?> getMyOrders(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return new ResponseEntity<>(this.response.build(HttpStatus.UNAUTHORIZED, null, "No autenticado"), HttpStatus.UNAUTHORIZED);
+            }
+            String username = String.valueOf(auth.getPrincipal());
+            Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+            Page<Order> ordersPage = orderBusiness.listPaginatedByUsername(username, pageable);
+            java.util.List<OrderResponseDTO> dtos = ordersPage.getContent().stream()
+                    .map(o -> orderMapper.toDto(o)).toList();
+            PaginatedResponse<OrderResponseDTO> response = new PaginatedResponse<>(
+                    dtos, ordersPage.getTotalPages(), ordersPage.getTotalElements(), page, size,
+                    ordersPage.isFirst(), ordersPage.isLast(), ordersPage.hasNext(), ordersPage.hasPrevious()
+            );
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (BusinessException e) {
+            return new ResponseEntity<>(this.response.build(HttpStatus.INTERNAL_SERVER_ERROR, e, e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
     }
 
     @GetMapping(value = "/my-orders", produces = MediaType.APPLICATION_JSON_VALUE)
