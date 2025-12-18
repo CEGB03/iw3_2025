@@ -23,128 +23,129 @@
         <button class="btn btn-outline-success" @click="toggleCreate('customer')">🧑‍💼 Crear Cliente</button>
         <button class="btn btn-outline-success" @click="toggleCreate('product')">🛢️ Crear Producto</button>
         <!-- Listar entidades -->
+        <button class="btn btn-outline-primary" @click="loadList('orders')">📄 Listar Órdenes</button>
         <button class="btn btn-outline-primary" @click="loadList('truck')">🚚📋 Listar Camiones</button>
+        <button class="btn btn-outline-primary" @click="loadList('driver')">👷📋 Listar Conductores</button>
         <button class="btn btn-outline-primary" @click="loadList('customer')">🧑‍💼📋 Listar Clientes</button>
         <button class="btn btn-outline-primary" @click="loadList('product')">🛢️📋 Listar Productos</button>
       </div>
     </div>
+    <!-- Listado dinámico ADMIN -->
+    <div v-if="role === 'ADMIN'">
+      <table v-if="listSection === 'orders'" class="table table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nº Orden</th>
+            <th>Estado</th>
+            <th>Camión</th>
+            <th>Preset</th>
+            <th>Última masa</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="o in orders" :key="o.id">
+            <td>{{ o.id }}</td>
+            <td>{{ o.externalCode }}</td>
+            <td>{{ o.state }}</td>
+            <td>{{ o.truck?.licensePlate }}</td>
+            <td>{{ o.preset }}</td>
+            <td>{{ o.lastMassAccumulated }}</td>
+            <td><router-link :to="`/orders/${o.id}`" class="btn btn-sm btn-primary">Ver</router-link></td>
+          </tr>
+        </tbody>
+      </table>
 
-    <table v-if="role === 'ADMIN' && listSection === 'orders'" class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nº Orden</th>
-          <th>Estado</th>
-          <th>Camión</th>
-          <th>Preset</th>
-          <th>Última masa</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="o in orders" :key="o.id">
-          <td>{{ o.id }}</td>
-          <td>{{ o.externalCode }}</td>
-          <td>{{ o.state }}</td>
-          <td>{{ o.truck?.licensePlate }}</td>
-          <td>{{ o.preset }}</td>
-          <td>{{ o.lastMassAccumulated }}</td>
-          <td><router-link :to="`/orders/${o.id}`" class="btn btn-sm btn-primary">Ver</router-link></td>
-        </tr>
+      <div v-if="listSection === 'truck'" class="card mb-3">
+        <div class="card-body">
+          <h6>🚚 Camiones</h6>
+          <table class="table table-sm"><thead><tr><th>Patente</th><th>Descripción</th></tr></thead><tbody>
+            <tr v-for="t in trucksList" :key="t.id"><td>{{ t.licensePlate }}</td><td>{{ t.description }}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
 
-          <!-- Formularios de creación ADMIN -->
-          <div v-if="role === 'ADMIN'">
-            <!-- Crear Camión -->
-            <div v-if="createSection === 'truck'" class="card mb-3">
-              <div class="card-body">
-                <h6>🚚 Crear Camión</h6>
-                <div class="row g-2">
-                  <div class="col-md-4"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente (ABC123)" /></div>
-                  <div class="col-md-6"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
-                  <div class="col-md-2 d-grid"><button class="btn btn-success" :disabled="!truckForm.licensePlate" @click="createTruck">Crear</button></div>
-                </div>
-              </div>
-            </div>
+      <div v-if="listSection === 'driver'" class="card mb-3">
+        <div class="card-body">
+          <h6>👷 Conductores</h6>
+          <table class="table table-sm"><thead><tr><th>DNI</th><th>Nombre</th><th>Apellido</th></tr></thead><tbody>
+            <tr v-for="d in driversList" :key="d.id"><td>{{ d.dni }}</td><td>{{ d.name }}</td><td>{{ d.lastName }}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
 
-            <!-- Crear Conductor -->
-            <div v-if="createSection === 'driver'" class="card mb-3">
-              <div class="card-body">
-                <h6>👷 Crear Conductor</h6>
-                <div class="row g-2">
-                  <div class="col-md-3"><input v-model.number="driverForm.dni" type="number" class="form-control" placeholder="DNI" /></div>
-                  <div class="col-md-3"><input v-model="driverForm.name" class="form-control" placeholder="Nombre" /></div>
-                  <div class="col-md-3"><input v-model="driverForm.lastName" class="form-control" placeholder="Apellido" /></div>
-                  <div class="col-md-3 d-grid"><button class="btn btn-success" :disabled="!driverForm.dni" @click="createDriver">Crear</button></div>
-                </div>
-              </div>
-            </div>
+      <div v-if="listSection === 'customer'" class="card mb-3">
+        <div class="card-body">
+          <h6>🧑‍💼 Clientes</h6>
+          <table class="table table-sm"><thead><tr><th>CUIT/CUIL</th><th>Teléfono</th><th>Mail</th></tr></thead><tbody>
+            <tr v-for="c in customersList" :key="c.id"><td>{{ c.socialNumber }}</td><td>{{ c.phoneNumber }}</td><td>{{ c.mail }}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
 
-            <!-- Crear Cliente -->
-            <div v-if="createSection === 'customer'" class="card mb-3">
-              <div class="card-body">
-                <h6>🧑‍💼 Crear Cliente</h6>
-                <div class="row g-2">
-                  <div class="col-md-4"><input v-model.number="customerForm.socialNumber" type="number" class="form-control" placeholder="CUIT/CUIL" /></div>
-                  <div class="col-md-4"><input v-model.number="customerForm.phoneNumber" type="number" class="form-control" placeholder="Teléfono" /></div>
-                  <div class="col-md-4"><input v-model="customerForm.mail" class="form-control" placeholder="Mail" /></div>
-                  <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!customerForm.socialNumber" @click="createCustomer">Crear</button></div>
-                </div>
-              </div>
-            </div>
+      <div v-if="listSection === 'product'" class="card mb-3">
+        <div class="card-body">
+          <h6>🛢️ Productos</h6>
+          <table class="table table-sm"><thead><tr><th>Nombre</th><th>Descripción</th></tr></thead><tbody>
+            <tr v-for="p in productsList" :key="p.id"><td>{{ p.productName }}</td><td>{{ p.description }}</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+    </div>
 
-            <!-- Crear Producto -->
-            <div v-if="createSection === 'product'" class="card mb-3">
-              <div class="card-body">
-                <h6>🛢️ Crear Producto</h6>
-                <div class="row g-2">
-                  <div class="col-md-6"><input v-model="productForm.productName" class="form-control" placeholder="Nombre" /></div>
-                  <div class="col-md-6"><input v-model="productForm.description" class="form-control" placeholder="Descripción" /></div>
-                  <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!productForm.productName" @click="createProduct">Crear</button></div>
-                </div>
-              </div>
-            </div>
+    <!-- Formularios de creación ADMIN -->
+    <div v-if="role === 'ADMIN'">
+      <!-- Crear Camión -->
+      <div v-if="createSection === 'truck'" class="card mb-3">
+        <div class="card-body">
+          <h6>🚚 Crear Camión</h6>
+          <div class="row g-2">
+            <div class="col-md-4"><input v-model="truckForm.licensePlate" class="form-control" placeholder="Patente (ABC123)" /></div>
+            <div class="col-md-6"><input v-model="truckForm.description" class="form-control" placeholder="Descripción" /></div>
+            <div class="col-md-2 d-grid"><button class="btn btn-success" :disabled="!truckForm.licensePlate" @click="createTruck">Crear</button></div>
           </div>
+        </div>
+      </div>
 
-          <!-- Listados ADMIN -->
-          <div v-if="role === 'ADMIN'">
-            <div v-if="listSection === 'truck'" class="card mb-3">
-              <div class="card-body">
-                <h6>🚚 Camiones</h6>
-                <table class="table table-sm"><thead><tr><th>Patente</th><th>Descripción</th></tr></thead><tbody>
-                  <tr v-for="t in trucksList" :key="t.id"><td>{{ t.licensePlate }}</td><td>{{ t.description }}</td></tr>
-                </tbody></table>
-              </div>
-            </div>
-
-            <div v-if="listSection === 'driver'" class="card mb-3">
-              <div class="card-body">
-                <h6>👷 Conductores</h6>
-                <table class="table table-sm"><thead><tr><th>DNI</th><th>Nombre</th><th>Apellido</th></tr></thead><tbody>
-                  <tr v-for="d in driversList" :key="d.id"><td>{{ d.dni }}</td><td>{{ d.name }}</td><td>{{ d.lastName }}</td></tr>
-                </tbody></table>
-              </div>
-            </div>
-
-            <div v-if="listSection === 'customer'" class="card mb-3">
-              <div class="card-body">
-                <h6>🧑‍💼 Clientes</h6>
-                <table class="table table-sm"><thead><tr><th>CUIT/CUIL</th><th>Teléfono</th><th>Mail</th></tr></thead><tbody>
-                  <tr v-for="c in customersList" :key="c.id"><td>{{ c.socialNumber }}</td><td>{{ c.phoneNumber }}</td><td>{{ c.mail }}</td></tr>
-                </tbody></table>
-              </div>
-            </div>
-
-            <div v-if="listSection === 'product'" class="card mb-3">
-              <div class="card-body">
-                <h6>🛢️ Productos</h6>
-                <table class="table table-sm"><thead><tr><th>Nombre</th><th>Descripción</th></tr></thead><tbody>
-                  <tr v-for="p in productsList" :key="p.id"><td>{{ p.productName }}</td><td>{{ p.description }}</td></tr>
-                </tbody></table>
-              </div>
-            </div>
+      <!-- Crear Conductor -->
+      <div v-if="createSection === 'driver'" class="card mb-3">
+        <div class="card-body">
+          <h6>👷 Crear Conductor</h6>
+          <div class="row g-2">
+            <div class="col-md-3"><input v-model.number="driverForm.dni" type="number" class="form-control" placeholder="DNI" /></div>
+            <div class="col-md-3"><input v-model="driverForm.name" class="form-control" placeholder="Nombre" /></div>
+            <div class="col-md-3"><input v-model="driverForm.lastName" class="form-control" placeholder="Apellido" /></div>
+            <div class="col-md-3 d-grid"><button class="btn btn-success" :disabled="!driverForm.dni" @click="createDriver">Crear</button></div>
           </div>
-      </tbody>
-    </table>
+        </div>
+      </div>
+
+      <!-- Crear Cliente -->
+      <div v-if="createSection === 'customer'" class="card mb-3">
+        <div class="card-body">
+          <h6>🧑‍💼 Crear Cliente</h6>
+          <div class="row g-2">
+            <div class="col-md-4"><input v-model.number="customerForm.socialNumber" type="number" class="form-control" placeholder="CUIT/CUIL" /></div>
+            <div class="col-md-4"><input v-model.number="customerForm.phoneNumber" type="number" class="form-control" placeholder="Teléfono" /></div>
+            <div class="col-md-4"><input v-model="customerForm.mail" class="form-control" placeholder="Mail" /></div>
+            <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!customerForm.socialNumber" @click="createCustomer">Crear</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crear Producto -->
+      <div v-if="createSection === 'product'" class="card mb-3">
+        <div class="card-body">
+          <h6>🛢️ Crear Producto</h6>
+          <div class="row g-2">
+            <div class="col-md-6"><input v-model="productForm.productName" class="form-control" placeholder="Nombre" /></div>
+            <div class="col-md-6"><input v-model="productForm.description" class="form-control" placeholder="Descripción" /></div>
+            <div class="col-md-12 d-grid mt-2"><button class="btn btn-success" :disabled="!productForm.productName" @click="createProduct">Crear</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
