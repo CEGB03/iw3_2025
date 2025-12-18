@@ -35,10 +35,27 @@
       </div>
 
       <div class="mb-3">
-        <button class="btn btn-success me-2" @click="registerTare">Registrar Tara</button>
+        <button v-if="order.state === 1 && !showTareForm" class="btn btn-success me-2" @click="showTareForm = true">Registrar Tara</button>
         <button class="btn btn-primary me-2" @click="startOrder">Obtener Preset</button>
         <button class="btn btn-warning me-2" @click="addDetail">Agregar Detalle (simulado)</button>
         <button class="btn btn-danger" @click="closeOrder">Cerrar Orden</button>
+      </div>
+
+      <div v-if="showTareForm" class="card mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Registrar pesaje inicial (tara)</h6>
+          <div class="row g-2 align-items-end">
+            <div class="col-sm-6">
+              <label class="form-label">Tara (kg)</label>
+              <input type="number" min="0" step="0.01" v-model.number="tare" class="form-control" placeholder="Ej: 10000" />
+            </div>
+            <div class="col-sm-6">
+              <button class="btn btn-secondary me-2" @click="cancelTare">Cancelar</button>
+              <button class="btn btn-success" :disabled="!isValidTare" @click="submitTare">Guardar</button>
+            </div>
+          </div>
+          <div class="form-text mt-2">Al registrar la tara se generará la contraseña de activación y la orden pasará a estado 2.</div>
+        </div>
       </div>
 
       <div class="mt-4">
@@ -73,7 +90,7 @@
 
 <script>
 import api from '../services/api'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 export default {
@@ -83,18 +100,42 @@ export default {
     const order = ref(null)
     const password = ref('')
     const reconciliation = ref(null)
+    const showTareForm = ref(false)
+    const tare = ref(null)
 
     const load = async () => {
       const res = await api.get(`/orders/${id}`)
       order.value = res.data
       password.value = res.data.password || res.data.activationPassword || ''
+      // Si ya no está en estado 1, ocultar formulario de tara
+      if (order.value && order.value.state !== 1) {
+        showTareForm.value = false
+      }
     }
 
-    const registerTare = async () => {
-      const tare = parseFloat(prompt('Ingrese tara (kg)', '10000'))
-      if (!isNaN(tare)) {
-        await api.post(`/orders/${id}/initial-weighing`, tare)
+    const isValidTare = computed(() => typeof tare.value === 'number' && !isNaN(tare.value) && tare.value > 0)
+
+    const cancelTare = () => {
+      tare.value = null
+      showTareForm.value = false
+    }
+
+    const submitTare = async () => {
+      if (!isValidTare.value) return
+      try {
+        const res = await api.post(`/orders/${id}/initial-weighing`, tare.value)
+        // Actualizar vista y mostrar password si llegó
         await load()
+        const pw = res.data?.activationPassword
+        if (pw) {
+          alert('Tara registrada. Contraseña de activación: ' + pw)
+        } else {
+          alert('Tara registrada correctamente.')
+        }
+      } catch (e) {
+        alert(e.response?.data?.message || 'Error registrando tara')
+      } finally {
+        cancelTare()
       }
     }
 
@@ -145,7 +186,7 @@ export default {
 
     onMounted(load)
 
-    return { order, password, registerTare, startOrder, addDetail, closeOrder, reconciliation, getReconciliation }
+    return { order, password, startOrder, addDetail, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare }
   }
 }
 </script>

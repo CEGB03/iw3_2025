@@ -101,9 +101,12 @@
         <div class="mb-4">
           <p class="text-muted">Contraseña de Activación:</p>
           <div class="password-display">
-            <h2 class="text-primary fw-bold">{{ generatedPassword }}</h2>
+            <h2 class="text-primary fw-bold">
+              {{ generatedPassword ? generatedPassword : 'Se generará al registrar la tara (pesaje inicial).' }}
+            </h2>
           </div>
           <button 
+            v-if="generatedPassword"
             type="button" 
             class="btn btn-outline-primary btn-sm mt-2"
             @click="copyToClipboard"
@@ -113,7 +116,7 @@
         </div>
 
         <p class="text-muted small">
-          Guarda esta contraseña. La necesitarás para registrar la tara y obtener el preset.
+          Si no ves contraseña, se asignará automáticamente al registrar la tara (estado 2).
         </p>
 
         <div class="modal-footer">
@@ -235,7 +238,7 @@ export default {
         }
 
         const res = await api.post('/orders', payload)
-        generatedPassword.value = res.data.password || res.data.activationPassword || 'N/A'
+        generatedPassword.value = res.data?.activationPassword || null
         passwordGenerated.value = true
       } catch (error) {
         errorMessage.value = error.response?.data?.message || 'Error al crear la orden'
