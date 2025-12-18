@@ -142,6 +142,9 @@
             <button class="btn btn-success" :disabled="!isValidManualDetail" @click="submitManualDetail">Enviar</button>
             <small class="text-muted" v-if="manualError">{{ manualError }}</small>
           </div>
+          <div v-if="detailManualResult" class="mt-2" :class="detailManualResult.ok ? 'alert alert-success' : 'alert alert-danger'">
+            {{ detailManualResult.message }}
+          </div>
         </div>
 
         <hr />
@@ -181,6 +184,7 @@ export default {
     const showDetailModal = ref(false)
     const detailForm = ref({ mass_accumulated: null, density: null, temperature: null, flow: null })
     const manualError = ref('')
+    const detailManualResult = ref(null)
     // CSV
     const csvRows = ref([])
     const csvSummary = ref('')
@@ -257,7 +261,7 @@ export default {
     const startOrder = async () => {
       try {
         const res = await api.post(`/orders/${id}/start`, null, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
-        alert('Preset: ' + res.data.preset)
+        alert(`Preset: ${res.data.preset}. Recuerda que la carga máxima es de: ${res.data.preset}`)
       } catch (e) {
         alert(e.response?.data?.message || 'Error')
       }
@@ -274,25 +278,29 @@ export default {
 
     const isValidManualDetail = computed(() => {
       const last = Number(order.value?.lastMassAccumulated || 0)
+      const preset = Number(order.value?.preset || 0)
       const m = detailForm.value.mass_accumulated
       const d = detailForm.value.density
       const t = detailForm.value.temperature
       const f = detailForm.value.flow
-      const ok = (m !== null && !isNaN(m) && m >= 0 && m >= last) && (d !== null && d > 0 && d < 1) && (t !== null && !isNaN(t)) && (f !== null && f >= 0)
+      const ok = (m !== null && m <= preset && !isNaN(m) && m >= 0 && m >= last) && (d !== null && d > 0 && d < 1) && (t !== null && !isNaN(t)) && (f !== null && f >= 0)
       return ok
     })
 
     const submitManualDetail = async () => {
       manualError.value = ''
+      detailManualResult.value = null
       if (!isValidManualDetail.value) { manualError.value = 'Revisá los valores: flow ≥ 0, 0 < density < 1, masa ≥ 0 y ≥ última.'; return }
       try {
         const payload = { ...detailForm.value, time_stamp: new Date().toISOString() }
         await api.post(`/orders/${id}/detail`, payload, { headers: { 'X-Activation-Password': activationPassword.value ? Number(activationPassword.value) : undefined }})
         await load()
+        detailManualResult.value = { ok: true, message: 'Detalle agregado correctamente.' }
         // Reset parcial para siguiente carga
         detailForm.value = { mass_accumulated: null, density: null, temperature: null, flow: null }
       } catch (e) {
-        alert(e.response?.data?.message || 'Error agregando detalle')
+        const msg = e.response?.data?.message || 'Error agregando detalle'
+        detailManualResult.value = { ok: false, message: msg }
       }
     }
 
@@ -377,7 +385,7 @@ export default {
 
     return { order, activationPassword, manualPassword, passwordVisible, passwordTimeoutMessage, handlePasswordInput, revealPassword, hidePassword, startOrder, closeOrder, reconciliation, getReconciliation, showTareForm, tare, isValidTare, submitTare, cancelTare, 
       // detalle
-      showDetailModal, openDetailModal, closeDetailModal, detailForm, isValidManualDetail, submitManualDetail, manualError, onCsvSelected, csvRows, csvSummary, submitBulkDetails }
+      showDetailModal, openDetailModal, closeDetailModal, detailForm, isValidManualDetail, submitManualDetail, manualError, detailManualResult, onCsvSelected, csvRows, csvSummary, submitBulkDetails }
   }
 }
 </script>

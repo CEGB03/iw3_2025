@@ -227,8 +227,23 @@ public class OrderBusiness implements IOrderBusiness {
                     }
                 }
         }
+
+        // 4. Validar contra preset: no se puede exceder y si se iguala, se marcará cierre automático
+        Double preset = order.getPreset();
+        boolean reachedPreset = false;
+        if (preset != null) {
+            if (detail.getMassAccumulated() > preset) {
+                log.warn("Descartado detalle para orden {}: massAccumulated={} excede preset {}", id, detail.getMassAccumulated(), preset);
+                throw BusinessException.builder()
+                        .message(String.format("La masa acumulada (%s) no puede exceder el preset (%s)", detail.getMassAccumulated(), preset))
+                        .build();
+            }
+            if (Double.compare(detail.getMassAccumulated(), preset) == 0) {
+                reachedPreset = true;
+            }
+        }
         
-        // 4. Validar 1 > density > 0  (es decir: 0 < density < 1)
+        // 5. Validar 1 > density > 0  (es decir: 0 < density < 1)
         if (detail.getDensity() == null || detail.getDensity() <= 0 || detail.getDensity() >= 1) {
             log.warn("Descartado detalle para orden {}: density={} debe estar entre 0 y 1 (exclusivo)", 
                     id, detail.getDensity());
@@ -255,6 +270,24 @@ public class OrderBusiness implements IOrderBusiness {
             order.setLastTemperature(detail.getTemperature());
             order.setLastFlow(detail.getFlow());
             order.setLastTimestamp(detail.getTimeStamp());
+
+            if (reachedPreset) {
+                int fromState = order.getState();
+                order.setState(3); // cerrar para carga
+                order.setTimeFinalLoading(detail.getTimeStamp());
+                Order saved = orderDAO.save(order);
+                try {
+                    saveStateLog(saved, fromState, 3, "system", "Cierre automático: se alcanzó el preset");
+                } catch (Exception ex) {
+                    log.warn("No se pudo registrar log de estado al cerrar por preset para orden {}: {}", id, ex.getMessage());
+                }
+                try {
+                    temperatureAlarmBusiness.handle(saved, detail.getTemperature());
+                } catch (Exception alarmEx) {
+                    log.warn("No se pudo procesar alarma de temperatura para orden {}: {}", id, alarmEx.getMessage());
+                }
+                return saved;
+            }
 
             Order saved = orderDAO.save(order);
 
