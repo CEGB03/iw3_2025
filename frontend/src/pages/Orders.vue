@@ -379,7 +379,18 @@ export default {
     }
 
     // Admin helpers
-    const toggleCreate = (what) => { createSection.value = createSection.value === what ? '' : what }
+    const toggleCreate = async (what) => {
+      createSection.value = createSection.value === what ? '' : what
+      // Cargar camiones si abre formulario de conductor
+      if (createSection.value === 'driver' && trucksList.value.length === 0) {
+        try {
+          const r = await api.get('/trucks')
+          trucksList.value = r.data
+        } catch (e) {
+          console.error('Error cargando camiones:', e)
+        }
+      }
+    }
     const loadList = async (what) => {
       listSection.value = what
       try {
