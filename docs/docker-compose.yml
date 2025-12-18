@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  nginx:
+    image: nginx:1.23.3
+    container_name: nginx
+    restart: always
+    depends_on:
+      - backend
+      - adminer
+    environment:
+      - TZ=${TZ}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/conf.d/cert:ro
+      - ./frontend_dist:/usr/share/nginx/html:ro
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: always
+    environment:
+      - TZ=${TZ}
+    expose:
+      - "8080"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+
+  backend:
+    image: magm3333/tomcat-jdk21:10.1.44
+    container_name: backend
+    restart: always
+    environment:
+      - TZ=${TZ}
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+      - MAIL_SMTP_AUTH=false
+      - MAIL_STARTTLS=false
+      - ALARM_TEMPERATURE_RECIPIENTS=alertas@iwiii25.dev;guardia@iwiii25.dev;soporte@iwiii25.dev
+    depends_on:
+      - mysql
+      - mailhog
+    expose:
+      - "8080"
+    volumes:
+      - ./tomcat/webapps:/opt/tomcat/webapps
+      - ./tomcat/conf/catalina.properties:/opt/tomcat/conf/catalina.properties
+      - ./tomcat/bin/setenv.sh:/opt/tomcat/bin/setenv.sh
+      - /etc/localtime:/etc/localtime:ro
+
+  mysql:
+    image: mysql:8.0.43
+    container_name: mysql_iw3
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQLROOTPWD}
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=${MYSQLPWD}
+      - TZ=${TZ}
+    ports:
+      - "3306:3306"
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_0900_ai_ci"
+      - "--default-authentication-plugin=mysql_native_password"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - ./mysqlinit:/docker-entrypoint-initdb.d
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    restart: always
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      - TZ=${TZ}
+
+volumes:
+  mysql-data:
