@@ -24,13 +24,12 @@
         <button class="btn btn-outline-success" @click="toggleCreate('product')">🛢️ Crear Producto</button>
         <!-- Listar entidades -->
         <button class="btn btn-outline-primary" @click="loadList('truck')">🚚📋 Listar Camiones</button>
-        <button class="btn btn-outline-primary" @click="loadList('driver')">👷📋 Listar Conductores</button>
         <button class="btn btn-outline-primary" @click="loadList('customer')">🧑‍💼📋 Listar Clientes</button>
         <button class="btn btn-outline-primary" @click="loadList('product')">🛢️📋 Listar Productos</button>
       </div>
     </div>
 
-    <table class="table table-striped">
+    <table v-if="role === 'ADMIN' && listSection === 'orders'" class="table table-striped">
       <thead>
         <tr>
           <th>ID</th>
@@ -186,13 +185,8 @@ export default {
         } catch (e) {
           role.value = ''
         }
-        // Listado de órdenes (solo ADMIN)
-        if (role.value === 'ADMIN') {
-          const res = await api.get('/orders')
-          orders.value = res.data
-        } else {
-          orders.value = []
-        }
+        // No cargar órdenes por defecto: sólo cuando se solicite listar
+        orders.value = []
       } catch (e) {
         if (e.response && e.response.status === 401) {
           router.push('/login')
@@ -200,7 +194,14 @@ export default {
       }
     }
 
-    const refresh = () => load()
+    const refresh = async () => {
+      // Refresca sólo el listado activo
+      if (listSection.value) {
+        await loadList(listSection.value)
+      } else {
+        await load()
+      }
+    }
     const logout = () => { localStorage.removeItem('token'); localStorage.removeItem('username'); router.push('/login') }
     const openCreateModal = () => {
       showCreateModal.value = true
@@ -211,6 +212,7 @@ export default {
     const loadList = async (what) => {
       listSection.value = what
       try {
+        if (what === 'orders') { const r = await api.get('/orders'); orders.value = r.data }
         if (what === 'truck') { const r = await api.get('/trucks'); trucksList.value = r.data }
         if (what === 'driver') { const r = await api.get('/drivers'); driversList.value = r.data }
         if (what === 'customer') { const r = await api.get('/customers'); customersList.value = r.data }
